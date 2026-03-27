@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Baby Game</title>
+
+<style>
+body { font-family: Arial; padding:16px; }
+button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
+#baby { font-size:120px; text-align:center; }
+#panel { white-space:pre-line; background:#f3f3f3; padding:12px; border-radius:10px; }
+</style>
+</head>
+
+<body>
+
+<div id="baby">👶</div>
+<div id="panel"></div>
+
+<button onclick="feed()">🍽 Alimentar</button>
+<button onclick="bottle()">🍼 Biberón</button>
+<button onclick="play()">🎲 Jugar</button>
+<button onclick="sleep()">😴 Dormir</button>
+<button onclick="bath()">🛁 Baño</button>
+<button onclick="diaper()">🧷 Cambiar pañal</button>
+<button onclick="rattle()">🔔 Sonajero</button>
+<button onclick="outdoor()">🌳 Paseo</button>
+<button onclick="status()">📊 Estado</button>
+
+<!-- 🔊 AUDIO LOCAL (GITHUB) -->
+<audio id="cry_hunger" src="audio/cry_hunger.mp3"></audio>
+<audio id="cry_sleep" src="audio/cry_sleep.mp3"></audio>
+<audio id="bottle" src="audio/bottle.mp3"></audio>
+<audio id="bath" src="audio/bath.mp3"></audio>
+<audio id="laugh" src="audio/laugh.mp3"></audio>
+<audio id="sleep" src="audio/sleep.mp3"></audio>
+<audio id="diaper" src="audio/diaper.mp3"></audio>
+<audio id="rattle" src="audio/rattle.mp3"></audio>
+<audio id="outdoor" src="audio/outdoor.mp3"></audio>
+
+<script>
+
+let baby = { hunger:50, energy:50, happiness:50, comfort:50 };
+
+let current=null;
+
+function sound(id){
+if(current){
+current.pause();
+current.currentTime=0;
+}
+current=document.getElementById(id);
+current.currentTime=0;
+current.play();
+}
+
+function update(){
+document.getElementById("panel").innerText =
+"Hambre: "+baby.hunger+"\n"+
+"Energía: "+baby.energy+"\n"+
+"Felicidad: "+baby.happiness+"\n"+
+"Confort: "+baby.comfort;
+}
+
+function feed(){
+baby.hunger-=30;
+update();
+}
+
+function bottle(){
+sound("bottle");
+baby.hunger-=40;
+update();
+}
+
+function play(){
+sound("laugh");
+baby.happiness+=10;
+update();
+}
+
+function sleep(){
+sound("sleep");
+baby.energy+=40;
+update();
+}
+
+function bath(){
+sound("bath");
+baby.comfort+=15;
+update();
+}
+
+function diaper(){
+sound("diaper");
+baby.comfort+=10;
+update();
+}
+
+function rattle(){
+sound("rattle");
+baby.happiness+=8;
+update();
+}
+
+function outdoor(){
+sound("outdoor");
+baby.happiness+=10;
+update();
+}
+
+function status(){
+speechSynthesis.speak(
+new SpeechSynthesisUtterance(
+"Hambre "+baby.hunger+
+", Energía "+baby.energy+
+", Felicidad "+baby.happiness+
+", Confort "+baby.comfort
+)
+);
+}
+
+update();
+
+</script>
+
+</body>
+</html>
