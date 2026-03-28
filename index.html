@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Baby Game</title>
+
+<style>
+body { font-family: Arial; padding:16px; }
+button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
+#baby { font-size:120px; text-align:center; }
+#panel { white-space:pre-line; background:#f3f3f3; padding:12px; border-radius:10px; }
+</style>
+</head>
+
+<body>
+
+<div id="baby">👶</div>
+<div id="panel"></div>
+
+<button onclick="feed()">🍽 Alimentar</button>
+<button onclick="bottle()">🍼 Preparar biberón</button>
+<button onclick="play()">🎲 Jugar</button>
+<button onclick="sleepBaby()">😴 Dormir</button>
+<button onclick="bath()">🛁 Baño</button>
+<button onclick="diaper()">🧷 Cambiar pañal</button>
+<button onclick="clothes()">👕 Ropa</button>
+<button onclick="rattle()">🔔 Sonajero</button>
+<button onclick="pacifier()">🍼 Chupete</button>
+<button onclick="outdoor()">🌳 Paseo</button>
+<button onclick="status()">📊 Estado</button>
+
+<audio id="cry_discomfort" src="cry_discomfort.mp3"></audio>
+<audio id="cry_sleep" src="cry_sleep.mp3"></audio>
+<audio id="cry_hunger" src="cry_hunger.mp3"></audio>
+
+<audio id="laugh" src="laugh.mp3"></audio>
+<audio id="babble" src="babble.mp3"></audio>
+
+<audio id="bath_water" src="bath_water.mp3"></audio>
+<audio id="bath_soap" src="bath_soap.mp3"></audio>
+<audio id="bath_dry" src="bath_dry.mp3"></audio>
+
+<audio id="diaper" src="diaper.mp3"></audio>
+<audio id="clothes" src="clothes.mp3"></
