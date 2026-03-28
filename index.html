@@ -21,6 +21,9 @@ button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 <button onclick="sleepBaby()">😴 Dormir</button>
 <button onclick="bath()">🛁 Baño</button>
 <button onclick="diaper()">🧷 Cambiar pañal</button>
+<button onclick="pacifier()">🍼 Chupete</button>
+<button onclick="walk()">🌳 Paseo</button>
+<button onclick="dress()">👕 Vestir</button>
 
 <!-- AUDIOS -->
 <audio id="cry_hunger" src="cry_hunger.mp3"></audio>
@@ -31,6 +34,8 @@ button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 <audio id="bottle_drink" src="bottle_drink.mp3"></audio>
 
 <audio id="laugh" src="laugh.mp3"></audio>
+<audio id="babble" src="babble.mp3"></audio>
+
 <audio id="sleep" src="sleep.mp3"></audio>
 
 <audio id="bath_water" src="bath_water.mp3"></audio>
@@ -39,10 +44,14 @@ button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 
 <audio id="diaper_sound" src="diaper.mp3"></audio>
 
+<audio id="pacifier_sound" src="pacifier.mp3"></audio>
+<audio id="outdoor_sound" src="outdoor.mp3"></audio>
+<audio id="clothes_sound" src="clothes.mp3"></audio>
+
 <script>
 
 //////////////////////////////////////////////////////
-// 🔊 FIX REAL DE AUDIO (IMPORTANTE PARA GITHUB PAGES)
+// 🔊 AUDIO FIX (YA ESTABLE)
 //////////////////////////////////////////////////////
 
 document.addEventListener("click", initAudio, { once:true });
@@ -58,14 +67,26 @@ function initAudio(){
 }
 
 //////////////////////////////////////////////////////
-// JUEGO
+// 🧠 MEMORIA (NUEVO)
 //////////////////////////////////////////////////////
 
-let baby = {
+let saved = localStorage.getItem("babySave");
+
+let baby = saved ? JSON.parse(saved) : {
   hunger: 50,
   energy: 50,
-  comfort: 50
+  comfort: 50,
+  lastTime: Date.now()
 };
+
+function save(){
+  baby.lastTime = Date.now();
+  localStorage.setItem("babySave", JSON.stringify(baby));
+}
+
+//////////////////////////////////////////////////////
+// 🔊 PLAY
+//////////////////////////////////////////////////////
 
 function play(id){
   let a = document.getElementById(id);
@@ -74,12 +95,21 @@ function play(id){
   a.play().catch(()=>{});
 }
 
+//////////////////////////////////////////////////////
+// UI
+//////////////////////////////////////////////////////
+
 function update(){
   document.getElementById("panel").innerText =
     "Hambre: " + baby.hunger +
     " | Energía: " + baby.energy +
     " | Confort: " + baby.comfort;
+  save();
 }
+
+//////////////////////////////////////////////////////
+// ACCIONES
+//////////////////////////////////////////////////////
 
 function feed(){
   play("bottle_drink");
@@ -103,36 +133,79 @@ function sleepBaby(){
 
 function bath(){
   play("bath_water");
-  setTimeout(()=>play("bath_soap"), 1000);
-  setTimeout(()=>play("bath_water"), 2000);
-  setTimeout(()=>play("bath_dry"), 3000);
+  setTimeout(()=>play("bath_soap"), 1200);
+  setTimeout(()=>play("bath_water"), 2400);
+  setTimeout(()=>play("bath_dry"), 3600);
   baby.comfort += 20;
   update();
 }
 
 function diaper(){
   play("diaper_sound");
+  baby.comfort += 15;
+  update();
+}
+
+function pacifier(){
+  play("pacifier_sound");
+  baby.comfort += 10;
+  update();
+}
+
+function walk(){
+  play("outdoor_sound");
   baby.comfort += 20;
   update();
 }
 
+function dress(){
+  play("clothes_sound");
+  baby.comfort += 10;
+  update();
+}
+
 //////////////////////////////////////////////////////
-// EVOLUCIÓN DEL BEBÉ
+// 🧠 EVOLUCIÓN REALISTA
 //////////////////////////////////////////////////////
 
 setInterval(()=>{
-  baby.hunger -= 1;
-  baby.energy -= 1;
-  baby.comfort -= 1;
 
-  if(baby.hunger < 20) play("cry_hunger");
-  else if(baby.energy < 20) play("cry_sleep");
-  else if(baby.comfort < 20) play("cry_discomfort");
+  baby.hunger -= 0.3;
+  baby.energy -= 0.25;
+  baby.comfort -= 0.2;
+
+  // balbuceo más frecuente (felicidad)
+  if(Math.random() < 0.12) play("babble");
+
+  // llanto menos frecuente
+  if(baby.hunger < 20 && Math.random() < 0.25) play("cry_hunger");
+  else if(baby.energy < 20 && Math.random() < 0.25) play("cry_sleep");
+  else if(baby.comfort < 20 && Math.random() < 0.25) play("cry_discomfort");
 
   update();
 
-}, 10000);
+}, 15000);
 
+//////////////////////////////////////////////////////
+// 🕒 RECUPERACIÓN AL ABRIR JUEGO
+//////////////////////////////////////////////////////
+
+function offlineProgress(){
+  let now = Date.now();
+  let diff = (now - baby.lastTime) / 1000;
+
+  let decay = diff / 200;
+
+  baby.hunger -= decay;
+  baby.energy -= decay;
+  baby.comfort -= decay;
+
+  if(baby.hunger < 0) baby.hunger = 0;
+  if(baby.energy < 0) baby.energy = 0;
+  if(baby.comfort < 0) baby.comfort = 0;
+}
+
+offlineProgress();
 update();
 
 </script>
