@@ -24,6 +24,7 @@ button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 <button onclick="pacifier()">🍼 Chupete</button>
 <button onclick="walk()">🌳 Paseo</button>
 <button onclick="dress()">👕 Vestir</button>
+<button onclick="rattle()">🪇 Sonajero</button>
 
 <!-- AUDIOS -->
 <audio id="cry_hunger" src="cry_hunger.mp3"></audio>
@@ -47,11 +48,12 @@ button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 <audio id="pacifier_sound" src="pacifier.mp3"></audio>
 <audio id="outdoor_sound" src="outdoor.mp3"></audio>
 <audio id="clothes_sound" src="clothes.mp3"></audio>
+<audio id="rattle_sound" src="rattle.mp3"></audio>
 
 <script>
 
 //////////////////////////////////////////////////////
-// 🔊 AUDIO FIX (YA ESTABLE)
+// 🔊 AUDIO FIX ESTABLE
 //////////////////////////////////////////////////////
 
 document.addEventListener("click", initAudio, { once:true });
@@ -67,7 +69,7 @@ function initAudio(){
 }
 
 //////////////////////////////////////////////////////
-// 🧠 MEMORIA (NUEVO)
+// 🧠 MEMORIA
 //////////////////////////////////////////////////////
 
 let saved = localStorage.getItem("babySave");
@@ -111,25 +113,10 @@ function update(){
 // ACCIONES
 //////////////////////////////////////////////////////
 
-function feed(){
-  play("bottle_drink");
-  baby.hunger += 30;
-  update();
-}
-
-function bottle(){
-  play("bottle_prepare");
-}
-
-function playGame(){
-  play("laugh");
-}
-
-function sleepBaby(){
-  play("sleep");
-  baby.energy += 30;
-  update();
-}
+function feed(){ play("bottle_drink"); baby.hunger += 30; update(); }
+function bottle(){ play("bottle_prepare"); }
+function playGame(){ play("laugh"); }
+function sleepBaby(){ play("sleep"); baby.energy += 30; update(); }
 
 function bath(){
   play("bath_water");
@@ -140,32 +127,15 @@ function bath(){
   update();
 }
 
-function diaper(){
-  play("diaper_sound");
-  baby.comfort += 15;
-  update();
-}
+function diaper(){ play("diaper_sound"); baby.comfort += 15; update(); }
+function pacifier(){ play("pacifier_sound"); baby.comfort += 10; update(); }
+function walk(){ play("outdoor_sound"); baby.comfort += 20; update(); }
+function dress(){ play("clothes_sound"); baby.comfort += 10; update(); }
 
-function pacifier(){
-  play("pacifier_sound");
-  baby.comfort += 10;
-  update();
-}
-
-function walk(){
-  play("outdoor_sound");
-  baby.comfort += 20;
-  update();
-}
-
-function dress(){
-  play("clothes_sound");
-  baby.comfort += 10;
-  update();
-}
+function rattle(){ play("rattle_sound"); baby.comfort += 12; update(); }
 
 //////////////////////////////////////////////////////
-// 🧠 EVOLUCIÓN REALISTA
+// EVOLUCIÓN
 //////////////////////////////////////////////////////
 
 setInterval(()=>{
@@ -174,10 +144,8 @@ setInterval(()=>{
   baby.energy -= 0.25;
   baby.comfort -= 0.2;
 
-  // balbuceo más frecuente (felicidad)
   if(Math.random() < 0.12) play("babble");
 
-  // llanto menos frecuente
   if(baby.hunger < 20 && Math.random() < 0.25) play("cry_hunger");
   else if(baby.energy < 20 && Math.random() < 0.25) play("cry_sleep");
   else if(baby.comfort < 20 && Math.random() < 0.25) play("cry_discomfort");
@@ -187,13 +155,12 @@ setInterval(()=>{
 }, 15000);
 
 //////////////////////////////////////////////////////
-// 🕒 RECUPERACIÓN AL ABRIR JUEGO
+// OFFLINE PROGRESS
 //////////////////////////////////////////////////////
 
 function offlineProgress(){
   let now = Date.now();
   let diff = (now - baby.lastTime) / 1000;
-
   let decay = diff / 200;
 
   baby.hunger -= decay;
