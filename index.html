@@ -41,4 +41,214 @@ button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 <audio id="bath_dry" src="bath_dry.mp3"></audio>
 
 <audio id="diaper" src="diaper.mp3"></audio>
-<audio id="clothes" src="clothes.mp3"></
+<audio id="clothes" src="clothes.mp3"></audio>
+
+<audio id="bottle_prepare" src="bottle_prepare.mp3"></audio>
+<audio id="bottle_drink" src="bottle_drink.mp3"></audio>
+
+<audio id="outdoor" src="outdoor.mp3"></audio>
+<audio id="pacifier" src="pacifier.mp3"></audio>
+<audio id="rattle" src="rattle.mp3"></audio>
+
+<audio id="sleep" src="sleep.mp3"></audio>
+
+<script>
+
+// 🔊 DESBLOQUEO DE AUDIO (SOLUCIÓN DEFINITIVA)
+document.body.addEventListener("click", function(){
+  let audios = document.querySelectorAll("audio");
+  audios.forEach(a => {
+    a.play().then(()=>{
+      a.pause();
+      a.currentTime = 0;
+    }).catch(()=>{});
+  });
+}, { once:true });
+
+let baby = JSON.parse(localStorage.getItem("baby")) || {
+  hunger:70,
+  energy:70,
+  happiness:70,
+  comfort:70,
+  care:50
+};
+
+let lastTime = localStorage.getItem("lastTime") || Date.now();
+let current = null;
+let lastCry = 0;
+
+let now = Date.now();
+let diffMinutes = (now - lastTime) / 60000;
+
+baby.hunger -= diffMinutes * 0.5;
+baby.energy -= diffMinutes * 0.3;
+baby.comfort -= diffMinutes * 0.2;
+
+localStorage.setItem("lastTime", now);
+
+function playSound(id){
+  if(current){
+    current.pause();
+    current.currentTime = 0;
+  }
+  current = document.getElementById(id);
+  if(current){
+    current.currentTime = 0;
+    current.play();
+  }
+}
+
+function playSoft(id){
+  if(current && !current.paused) return;
+  let a = document.getElementById(id);
+  if(a){
+    a.currentTime = 0;
+    a.play();
+  }
+}
+
+function playSequence(ids){
+  let i = 0;
+  function next(){
+    if(i >= ids.length) return;
+    let audio = document.getElementById(ids[i]);
+    current = audio;
+    audio.currentTime = 0;
+    audio.play();
+    audio.onended = ()=>{
+      i++;
+      next();
+    };
+  }
+  next();
+}
+
+function update(){
+  document.getElementById("panel").innerText =
+    "Hambre: " + Math.round(baby.hunger) + "\n" +
+    "Energía: " + Math.round(baby.energy) + "\n" +
+    "Felicidad: " + Math.round(baby.happiness) + "\n" +
+    "Confort: " + Math.round(baby.comfort);
+
+  localStorage.setItem("baby", JSON.stringify(baby));
+}
+
+function checkNeeds(){
+  let now = Date.now();
+  if(current && !current.paused) return;
+  if(now - lastCry < 30000) return;
+
+  if(baby.hunger < 30){
+    playSound("cry_hunger");
+    lastCry = now;
+  }
+  else if(baby.energy < 30){
+    playSound("cry_sleep");
+    lastCry = now;
+  }
+  else if(baby.comfort < 30){
+    playSound("cry_discomfort");
+    lastCry = now;
+  }
+}
+
+function randomLife(){
+  if(Math.random() < 0.2){
+    playSoft("babble");
+  }
+  if(Math.random() < (baby.happiness / 200)){
+    playSoft("laugh");
+  }
+}
+
+function feed(){
+  playSound("bottle_drink");
+  baby.hunger += 40;
+  baby.care += 2;
+  update();
+}
+
+function bottle(){
+  playSound("bottle_prepare");
+}
+
+function play(){
+  playSound("laugh");
+  baby.happiness += 15;
+  baby.care += 2;
+  update();
+}
+
+function sleepBaby(){
+  playSound("sleep");
+  baby.energy += 50;
+  update();
+}
+
+function bath(){
+  playSequence(["bath_water","bath_soap","bath_water","bath_dry"]);
+  baby.comfort += 30;
+  baby.care += 2;
+  update();
+}
+
+function diaper(){
+  playSound("diaper");
+  baby.comfort += 25;
+  baby.care += 2;
+  update();
+}
+
+function clothes(){
+  playSound("clothes");
+  baby.comfort += 15;
+  update();
+}
+
+function rattle(){
+  playSound("rattle");
+  baby.happiness += 10;
+  update();
+}
+
+function pacifier(){
+  playSound("pacifier");
+  baby.comfort += 10;
+  update();
+}
+
+function outdoor(){
+  playSound("outdoor");
+  baby.happiness += 15;
+  update();
+}
+
+function status(){
+  speechSynthesis.speak(
+    new SpeechSynthesisUtterance(
+      "Hambre " + Math.round(baby.hunger) +
+      ", Energía " + Math.round(baby.energy) +
+      ", Felicidad " + Math.round(baby.happiness) +
+      ", Confort " + Math.round(baby.comfort)
+    )
+  );
+}
+
+setInterval(()=>{
+  baby.hunger -= 1;
+  baby.energy -= 0.7;
+  baby.comfort -= 0.5;
+  baby.care -= 0.2;
+
+  update();
+  checkNeeds();
+  randomLife();
+
+}, 20000);
+
+update();
+
+</script>
+
+</body>
+</html>
