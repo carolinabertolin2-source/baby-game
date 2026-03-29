@@ -8,7 +8,7 @@
 body { font-family: Arial; padding:16px; }
 button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 #panel { white-space:pre-line; background:#f3f3f3; padding:12px; border-radius:10px; }
-#status { position:absolute; left:-9999px; } /* accesible solo para lector */
+#status { position:absolute; left:-9999px; }
 </style>
 </head>
 
@@ -20,7 +20,9 @@ button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 <button onclick="feed()">🍽 Alimentar</button>
 <button onclick="bottle()">🍼 Preparar biberón</button>
 <button onclick="playGame()">🎲 Jugar</button>
-<button onclick="sleepBaby()">😴 Dormir</button>
+
+<button onclick="soothe()">🤱 Arrullar</button>
+<button onclick="sleepBed()">🛏 Acostar y tapar</button>
 
 <button onclick="bathWater()">💧 Dar agua</button>
 <button onclick="bathSoap()">🧼 Dar jabón</button>
@@ -34,7 +36,6 @@ button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 <button onclick="rattle()">🪇 Sonajero</button>
 <button onclick="hug()">🤗 Abrazar</button>
 
-<!-- AUDIOS (igual que antes) -->
 <audio id="cry_hunger" src="cry_hunger.mp3"></audio>
 <audio id="cry_sleep" src="cry_sleep.mp3"></audio>
 <audio id="cry_discomfort" src="cry_discomfort.mp3"></audio>
@@ -46,6 +47,8 @@ button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 <audio id="babble" src="babble.mp3"></audio>
 
 <audio id="sleep" src="sleep.mp3"></audio>
+<audio id="musicbox" src="musicbox.mp3"></audio>
+<audio id="blanket" src="blanket.mp3"></audio>
 
 <audio id="bath_water" src="bath_water.mp3"></audio>
 <audio id="bath_soap" src="bath_soap.mp3"></audio>
@@ -68,10 +71,6 @@ function initAudio(){
   });
 }
 
-//////////////////////////////////////////////////////
-// ESTADO
-//////////////////////////////////////////////////////
-
 let saved = localStorage.getItem("babySave");
 
 let baby = saved ? JSON.parse(saved) : {
@@ -83,14 +82,12 @@ let baby = saved ? JSON.parse(saved) : {
   lastTime: Date.now()
 };
 
+let sleepReady = false;
+
 function save(){
   baby.lastTime = Date.now();
   localStorage.setItem("babySave", JSON.stringify(baby));
 }
-
-//////////////////////////////////////////////////////
-// AUDIO
-//////////////////////////////////////////////////////
 
 function play(id){
   let a = document.getElementById(id);
@@ -99,24 +96,11 @@ function play(id){
   a.play().catch(()=>{});
 }
 
-//////////////////////////////////////////////////////
-// EMOCIONES
-//////////////////////////////////////////////////////
-
 function updateMood(){
-
-  if(baby.energy < 20){
-    baby.mood = "cansado";
-  }
-  else if(baby.hunger < 20 || baby.comfort < 20){
-    baby.mood = "triste";
-  }
-  else if(baby.affection > 70){
-    baby.mood = "feliz";
-  }
-  else{
-    baby.mood = "normal";
-  }
+  if(baby.energy < 20) baby.mood = "cansado";
+  else if(baby.hunger < 20 || baby.comfort < 20) baby.mood = "triste";
+  else if(baby.affection > 70) baby.mood = "feliz";
+  else baby.mood = "normal";
 
   announceMood();
 }
@@ -132,39 +116,51 @@ function announceMood(){
   document.getElementById("status").innerText = text;
 }
 
-//////////////////////////////////////////////////////
-// UI
-//////////////////////////////////////////////////////
-
 function update(){
   updateMood();
-
   document.getElementById("panel").innerText =
     "Hambre: " + baby.hunger +
     " | Energía: " + baby.energy +
     " | Confort: " + baby.comfort +
     " | Afecto: " + baby.affection +
     " | Estado: " + baby.mood;
-
   save();
 }
 
-//////////////////////////////////////////////////////
-// ACCIONES
-//////////////////////////////////////////////////////
-
 function feed(){ play("bottle_drink"); baby.hunger += 30; update(); }
 function bottle(){ play("bottle_prepare"); }
+function playGame(){ play("laugh"); baby.affection += 10; update(); }
 
-function playGame(){
-  play("laugh");
-  baby.affection += 10;
+function soothe(){
+  play("musicbox");
+  baby.energy += 8;
+  baby.comfort += 5;
+
+  if(Math.random() < 0.5){
+    sleepReady = true;
+  }
+
   update();
 }
 
-function sleepBaby(){
-  play("sleep");
-  baby.energy += 30;
+function sleepBed(){
+
+  if(sleepReady){
+    play("blanket");
+    setTimeout(()=>play("sleep"), 1200);
+
+    baby.energy += 30;
+    sleepReady = false;
+
+  } else {
+    play("cry_sleep");
+    baby.comfort -= 5;
+
+    if(Math.random() < 0.3){
+      sleepReady = true;
+    }
+  }
+
   update();
 }
 
@@ -186,10 +182,6 @@ function hug(){
   update();
 }
 
-//////////////////////////////////////////////////////
-// EVOLUCIÓN
-//////////////////////////////////////////////////////
-
 setInterval(()=>{
 
   baby.hunger -= 0.3;
@@ -206,10 +198,6 @@ setInterval(()=>{
   update();
 
 }, 15000);
-
-//////////////////////////////////////////////////////
-// OFFLINE
-//////////////////////////////////////////////////////
 
 function offlineProgress(){
   let now = Date.now();
