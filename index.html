@@ -19,12 +19,19 @@ button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 <button onclick="bottle()">🍼 Preparar biberón</button>
 <button onclick="playGame()">🎲 Jugar</button>
 <button onclick="sleepBaby()">😴 Dormir</button>
-<button onclick="bath()">🛁 Baño</button>
+
+<!-- BAÑO INTERACTIVO -->
+<button onclick="bathWater()">💧 Dar agua</button>
+<button onclick="bathSoap()">🧼 Dar jabón</button>
+<button onclick="bathRinse()">🚿 Aclarar</button>
+<button onclick="bathDry()">🧽 Secar</button>
+
 <button onclick="diaper()">🧷 Cambiar pañal</button>
 <button onclick="pacifier()">🍼 Chupete</button>
 <button onclick="walk()">🌳 Paseo</button>
 <button onclick="dress()">👕 Vestir</button>
 <button onclick="rattle()">🪇 Sonajero</button>
+<button onclick="hug()">🤗 Abrazar</button>
 
 <!-- AUDIOS -->
 <audio id="cry_hunger" src="cry_hunger.mp3"></audio>
@@ -52,24 +59,16 @@ button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
 
 <script>
 
-//////////////////////////////////////////////////////
-// 🔊 AUDIO FIX ESTABLE
-//////////////////////////////////////////////////////
-
 document.addEventListener("click", initAudio, { once:true });
 
 function initAudio(){
-  const audios = document.querySelectorAll("audio");
-  audios.forEach(a=>{
-    a.play().then(()=>{
-      a.pause();
-      a.currentTime = 0;
-    }).catch(()=>{});
+  document.querySelectorAll("audio").forEach(a=>{
+    a.play().then(()=>{a.pause(); a.currentTime=0;}).catch(()=>{});
   });
 }
 
 //////////////////////////////////////////////////////
-// 🧠 MEMORIA
+// MEMORIA
 //////////////////////////////////////////////////////
 
 let saved = localStorage.getItem("babySave");
@@ -78,6 +77,7 @@ let baby = saved ? JSON.parse(saved) : {
   hunger: 50,
   energy: 50,
   comfort: 50,
+  affection: 50,
   lastTime: Date.now()
 };
 
@@ -87,7 +87,7 @@ function save(){
 }
 
 //////////////////////////////////////////////////////
-// 🔊 PLAY
+// PLAY
 //////////////////////////////////////////////////////
 
 function play(id){
@@ -105,7 +105,8 @@ function update(){
   document.getElementById("panel").innerText =
     "Hambre: " + baby.hunger +
     " | Energía: " + baby.energy +
-    " | Confort: " + baby.comfort;
+    " | Confort: " + baby.comfort +
+    " | Afecto: " + baby.affection;
   save();
 }
 
@@ -115,24 +116,28 @@ function update(){
 
 function feed(){ play("bottle_drink"); baby.hunger += 30; update(); }
 function bottle(){ play("bottle_prepare"); }
-function playGame(){ play("laugh"); }
+function playGame(){ play("laugh"); baby.affection += 10; update(); }
 function sleepBaby(){ play("sleep"); baby.energy += 30; update(); }
 
-function bath(){
-  play("bath_water");
-  setTimeout(()=>play("bath_soap"), 1200);
-  setTimeout(()=>play("bath_water"), 2400);
-  setTimeout(()=>play("bath_dry"), 3600);
-  baby.comfort += 20;
-  update();
-}
+// BAÑO INTERACTIVO
+function bathWater(){ play("bath_water"); baby.comfort += 5; update(); }
+function bathSoap(){ play("bath_soap"); baby.comfort += 5; update(); }
+function bathRinse(){ play("bath_water"); baby.comfort += 5; update(); }
+function bathDry(){ play("bath_dry"); baby.comfort += 10; update(); }
 
 function diaper(){ play("diaper_sound"); baby.comfort += 15; update(); }
 function pacifier(){ play("pacifier_sound"); baby.comfort += 10; update(); }
-function walk(){ play("outdoor_sound"); baby.comfort += 20; update(); }
+function walk(){ play("outdoor_sound"); baby.affection += 10; update(); }
 function dress(){ play("clothes_sound"); baby.comfort += 10; update(); }
+function rattle(){ play("rattle_sound"); baby.affection += 8; update(); }
 
-function rattle(){ play("rattle_sound"); baby.comfort += 12; update(); }
+// NUEVA ACCIÓN
+function hug(){
+  play("babble");
+  baby.affection += 20;
+  baby.comfort += 5;
+  update();
+}
 
 //////////////////////////////////////////////////////
 // EVOLUCIÓN
@@ -143,19 +148,21 @@ setInterval(()=>{
   baby.hunger -= 0.3;
   baby.energy -= 0.25;
   baby.comfort -= 0.2;
+  baby.affection -= 0.3;
 
-  if(Math.random() < 0.12) play("babble");
+  if(Math.random() < 0.15) play("babble");
 
   if(baby.hunger < 20 && Math.random() < 0.25) play("cry_hunger");
   else if(baby.energy < 20 && Math.random() < 0.25) play("cry_sleep");
   else if(baby.comfort < 20 && Math.random() < 0.25) play("cry_discomfort");
+  else if(baby.affection < 20 && Math.random() < 0.3) play("babble");
 
   update();
 
 }, 15000);
 
 //////////////////////////////////////////////////////
-// OFFLINE PROGRESS
+// OFFLINE
 //////////////////////////////////////////////////////
 
 function offlineProgress(){
@@ -166,10 +173,11 @@ function offlineProgress(){
   baby.hunger -= decay;
   baby.energy -= decay;
   baby.comfort -= decay;
+  baby.affection -= decay;
 
-  if(baby.hunger < 0) baby.hunger = 0;
-  if(baby.energy < 0) baby.energy = 0;
-  if(baby.comfort < 0) baby.comfort = 0;
+  ["hunger","energy","comfort","affection"].forEach(k=>{
+    if(baby[k] < 0) baby[k] = 0;
+  });
 }
 
 offlineProgress();
