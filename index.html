@@ -27,7 +27,6 @@
 <button onclick="hugBaby()">Abrazar</button>
 <button onclick="rattle()">Sonajero</button>
 <button onclick="pacifier()">Chupete</button>
-
 <button onclick="walk()">Paseo</button>
 
 <!-- ALIMENTACIÓN -->
@@ -61,25 +60,30 @@
 <button onclick="giveMedicine()">Jarabe</button>
 
 <p id="status"></p>
+<p id="age"></p>
 
 </div>
 
 <script>
 
+// ================= ESTADO =================
 let state = "idle";
 let activeSound = null;
 
 let babyName = "";
 let babyGender = "";
-
 let startTime = Date.now();
 
-let temperature = 36.5;
 let sick = false;
+let temperature = 36.5;
 
-// ================= UTIL AUDIO =================
+// ================= CARGA PERSISTENTE =================
+babyName = localStorage.getItem("babyName") || "";
+babyGender = localStorage.getItem("babyGender") || "";
+startTime = Number(localStorage.getItem("startTime")) || Date.now();
+
+// ================= AUDIO =================
 function playSound(src, force=false){
-
     if(!force && state !== "idle") return;
     if(activeSound) return;
 
@@ -87,33 +91,42 @@ function playSound(src, force=false){
     activeSound = audio;
 
     audio.play();
-
     audio.onended = ()=> activeSound = null;
 }
 
 // ================= INICIO =================
 function startGame(){
+
     babyName = document.getElementById("babyName").value || "Bebé";
     babyGender = document.getElementById("babyGender").value;
+
+    startTime = Date.now();
+
+    localStorage.setItem("babyName", babyName);
+    localStorage.setItem("babyGender", babyGender);
+    localStorage.setItem("startTime", startTime);
 
     document.getElementById("startScreen").style.display="none";
     document.getElementById("game").style.display="block";
 
-    speak(`${babyName} ha nacido`);
-}
-
-// ================= HELP =================
-function speak(text){
-    document.getElementById("status").innerText = text;
+    document.getElementById("status").innerText =
+    babyName + " ha nacido";
 }
 
 // ================= EDAD =================
 function getAgeYears(){
     let days = (Date.now()-startTime)/86400000;
-    return (days/20).toFixed(1); // 60 días = 3 años
+    return days/20; // 60 días = 3 años
 }
 
-// ================= ESTADO ALIMENTACIÓN =================
+// mostrar edad en pantalla
+setInterval(()=>{
+    let age = getAgeYears();
+    document.getElementById("age").innerText =
+    "Edad: " + age.toFixed(2) + " años";
+}, 1000);
+
+// ================= ALIMENTACIÓN =================
 function isFoodUnlocked(){
     return getAgeYears() >= 0.5;
 }
@@ -125,7 +138,7 @@ function playBaby(){
     setTimeout(()=>state="idle",3000);
 }
 
-// ================= ABRAZO =================
+// ================= ABRAZAR =================
 function hugBaby(){
     state="comfort";
     playSound("babble.mp3", true);
@@ -156,7 +169,7 @@ function walk(){
 // ================= BIBERÓN =================
 function prepareBottle(){
     state="feeding";
-    playSound("food_prepare.mp3", true);
+    playSound("bottle_prepare.mp3", true);
 }
 
 function feedBottle(){
@@ -168,17 +181,14 @@ function feedBottle(){
 // ================= PAPILLA =================
 function prepareFood(){
     if(!isFoodUnlocked()){
-        speak("Aún es muy pequeño para papilla");
+        document.getElementById("status").innerText="Aún no puede tomar papilla";
         return;
     }
     playSound("food_prepare.mp3", true);
 }
 
 function feedFood(){
-    if(!isFoodUnlocked()){
-        speak("Aún no puede comer papilla");
-        return;
-    }
+    if(!isFoodUnlocked()) return;
 
     state="feeding";
 
@@ -236,7 +246,8 @@ function enterDoctor(){
 
         setTimeout(()=>{
             let t = (36 + Math.random()*2).toFixed(1);
-            speak(babyName + " tiene " + t + " grados");
+            document.getElementById("status").innerText =
+            babyName + " tiene " + t + "°C";
         },10000);
 
     },5000);
@@ -252,10 +263,9 @@ function exitDoctor(){
 // ================= JARABE =================
 function giveMedicine(){
     playSound("medicine_swallow.mp3", true);
-    temperature -= 0.5;
 }
 
-// ================= PASIVO FELIZ =================
+// ================= SONIDOS PASIVOS =================
 setInterval(()=>{
     if(state==="idle" && !activeSound){
         if(Math.random()<0.5){
