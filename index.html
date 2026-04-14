@@ -1,184 +1,283 @@
-<!DOCTYPE html><html lang="es">
+<!DOCTYPE html>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <title>Simulador de Bebé</title>
-</head><body><h1>Simulador de Bebé</h1><button onclick="prepareBottle()">Preparar biberón</button>
+</head>
+
+<body>
+
+<h1>Simulador de Bebé</h1>
+
+<!-- INICIO -->
+<div id="startScreen">
+    <h2>Crear bebé</h2>
+    <input id="babyName" placeholder="Nombre del bebé">
+    <select id="babyGender">
+        <option value="boy">Niño</option>
+        <option value="girl">Niña</option>
+    </select>
+    <button onclick="startGame()">Empezar</button>
+</div>
+
+<div id="game" style="display:none">
+
+<!-- ACCIONES -->
+<button onclick="playBaby()">Jugar</button>
+<button onclick="hugBaby()">Abrazar</button>
+<button onclick="rattle()">Sonajero</button>
+<button onclick="pacifier()">Chupete</button>
+
+<button onclick="walk()">Paseo</button>
+
+<!-- ALIMENTACIÓN -->
+<button onclick="prepareBottle()">Preparar biberón</button>
 <button onclick="feedBottle()">Dar biberón</button>
 
 <button onclick="prepareFood()">Preparar papilla</button>
 <button onclick="feedFood()">Dar papilla</button>
 
-<button onclick="sleepBaby()">Dormir</button>
-<button onclick="wakeUp()">Despertar</button>
+<!-- BAÑO -->
+<button onclick="bathWater()">Agua</button>
+<button onclick="bathSoap()">Jabón</button>
+<button onclick="bathRinse()">Aclarar</button>
+<button onclick="bathDry()">Secar</button>
 
+<!-- CUIDADOS -->
+<button onclick="changeDiaper()">Pañal</button>
+<button onclick="dress()">Vestir</button>
+
+<!-- SUEÑO -->
+<button onclick="soothe()">Arrullar</button>
+<button onclick="sleepBaby()">Dormir</button>
+
+<!-- MÉDICO -->
 <button onclick="goDoctor()">Ir al médico</button>
 <button onclick="enterDoctor()">Entrar</button>
 <button onclick="exitDoctor()">Salir</button>
 
+<!-- SALUD -->
 <button onclick="takeTemperature()">Tomar fiebre</button>
-<button onclick="giveMedicine()">Dar jarabe</button>
+<button onclick="giveMedicine()">Jarabe</button>
 
-<p id="status"></p><script>
+<p id="status"></p>
 
-// ================== ESTADO ==================
+</div>
+
+<script>
+
 let state = "idle";
-let sick = false;
-let temperature = 36.5;
-let medicineToday = 0;
-let lastMedicineDay = null;
-
-let passiveSoundPlaying = false;
 let activeSound = null;
 
-// ================== UTIL ==================
-function playSound(src, type="active") {
-    if (state !== "idle" && type === "passive") return;
-    if (activeSound) return;
+let babyName = "";
+let babyGender = "";
+
+let startTime = Date.now();
+
+let temperature = 36.5;
+let sick = false;
+
+// ================= UTIL AUDIO =================
+function playSound(src, force=false){
+
+    if(!force && state !== "idle") return;
+    if(activeSound) return;
 
     let audio = new Audio(src);
     activeSound = audio;
 
     audio.play();
 
-    audio.onended = () => {
-        activeSound = null;
-        passiveSoundPlaying = false;
-    };
+    audio.onended = ()=> activeSound = null;
 }
 
-// ================== BIBERÓN ==================
-function prepareBottle() {
-    state = "feeding";
-    playSound("bottle_prepare.mp3");
+// ================= INICIO =================
+function startGame(){
+    babyName = document.getElementById("babyName").value || "Bebé";
+    babyGender = document.getElementById("babyGender").value;
+
+    document.getElementById("startScreen").style.display="none";
+    document.getElementById("game").style.display="block";
+
+    speak(`${babyName} ha nacido`);
 }
 
-function feedBottle() {
-    state = "feeding";
-    playSound("bottle_drink.mp3");
-    setTimeout(()=> state="idle",3000);
+// ================= HELP =================
+function speak(text){
+    document.getElementById("status").innerText = text;
 }
 
-// ================== PAPILLA ==================
-function prepareFood() {
-    playSound("food_prepare.mp3");
+// ================= EDAD =================
+function getAgeYears(){
+    let days = (Date.now()-startTime)/86400000;
+    return (days/20).toFixed(1); // 60 días = 3 años
 }
 
-function feedFood() {
-    state = "feeding";
-
-    let spoon = new Audio("spoon_in_bowl.mp3");
-    let eat = new Audio("food_eat.mp3");
-
-    spoon.play();
-    eat.play();
-
-    setTimeout(()=> state="idle",4000);
+// ================= ESTADO ALIMENTACIÓN =================
+function isFoodUnlocked(){
+    return getAgeYears() >= 0.5;
 }
 
-// ================== SUEÑO ==================
-function sleepBaby() {
-    if (Math.random() < 0.5) {
-        playSound("cry.mp3");
-    } else {
-        state = "sleep";
-        playSound("sleep.mp3");
+// ================= JUGAR =================
+function playBaby(){
+    state="play";
+    playSound("laugh.mp3", true);
+    setTimeout(()=>state="idle",3000);
+}
+
+// ================= ABRAZO =================
+function hugBaby(){
+    state="comfort";
+    playSound("babble.mp3", true);
+    setTimeout(()=>state="idle",3000);
+}
+
+// ================= SONAJERO =================
+function rattle(){
+    state="play";
+    playSound("rattle.mp3", true);
+    setTimeout(()=>state="idle",3000);
+}
+
+// ================= CHUPETE =================
+function pacifier(){
+    state="action";
+    playSound("pacifier.mp3", true);
+    setTimeout(()=>state="idle",3000);
+}
+
+// ================= PASEO =================
+function walk(){
+    state="action";
+    playSound("outdoor.mp3", true);
+    setTimeout(()=>state="idle",4000);
+}
+
+// ================= BIBERÓN =================
+function prepareBottle(){
+    state="feeding";
+    playSound("food_prepare.mp3", true);
+}
+
+function feedBottle(){
+    state="feeding";
+    playSound("bottle_drink.mp3", true);
+    setTimeout(()=>state="idle",3000);
+}
+
+// ================= PAPILLA =================
+function prepareFood(){
+    if(!isFoodUnlocked()){
+        speak("Aún es muy pequeño para papilla");
+        return;
     }
+    playSound("food_prepare.mp3", true);
 }
 
-function wakeUp() {
-    state = "idle";
-}
-
-// ================== MÉDICO ==================
-function goDoctor() {
-    state = "doctor";
-    playSound("outdoor.mp3");
-
-    setTimeout(()=> playSound("doctor_1.mp3"),3000);
-    setTimeout(()=> playSound("doctor_2.mp3"),20000);
-}
-
-function enterDoctor() {
-    playSound("doctor_3.mp3");
-
-    setTimeout(()=> {
-        let t = generateTemp();
-        new Audio("thermometer.mp3").play();
-        setTimeout(()=> {
-            alert("Temperatura: " + t + "°C");
-        },10000);
-    },5000);
-
-    setTimeout(()=> playSound("doctor_4.mp3"),20000);
-}
-
-function exitDoctor() {
-    playSound("outdoor.mp3");
-    state = "idle";
-}
-
-// ================== TEMPERATURA ==================
-function generateTemp() {
-    if (sick) {
-        temperature = (37.5 + Math.random()*2).toFixed(1);
-    } else {
-        temperature = (36 + Math.random()*1.2).toFixed(1);
-    }
-    return temperature;
-}
-
-function takeTemperature() {
-    new Audio("thermometer.mp3").play();
-    setTimeout(()=> {
-        let t = generateTemp();
-        alert("Temperatura: " + t + "°C");
-    },4000);
-}
-
-// ================== JARABE ==================
-function giveMedicine() {
-    let today = new Date().toDateString();
-
-    if (lastMedicineDay !== today) {
-        medicineToday = 0;
-        lastMedicineDay = today;
-    }
-
-    if (medicineToday >= 3) {
-        alert("Ya ha tomado suficiente jarabe hoy");
+function feedFood(){
+    if(!isFoodUnlocked()){
+        speak("Aún no puede comer papilla");
         return;
     }
 
-    medicineToday++;
+    state="feeding";
 
-    playSound("medicine_swallow.mp3");
+    new Audio("spoon_in_bowl.mp3").play();
+    new Audio("food_eat.mp3").play();
 
+    setTimeout(()=>state="idle",4000);
+}
+
+// ================= BAÑO =================
+function bathWater(){ state="bath"; playSound("bath_water.mp3", true); }
+function bathSoap(){ state="bath"; playSound("bath_soap.mp3", true); }
+function bathRinse(){ state="bath"; playSound("bath_water.mp3", true); }
+
+function bathDry(){
+    state="bath";
+    playSound("bath_dry.mp3", true);
+    setTimeout(()=>state="idle",3000);
+}
+
+// ================= CUIDADOS =================
+function changeDiaper(){ playSound("diaper.mp3", true); }
+function dress(){ playSound("clothes.mp3", true); }
+
+// ================= SUEÑO =================
+function soothe(){
+    state="sleep";
+    playSound("musicbox.mp3", true);
+}
+
+function sleepBaby(){
+    if(Math.random()<0.5){
+        state="cry";
+        playSound("cry.mp3", true);
+    } else {
+        state="sleep";
+        playSound("sleep.mp3", true);
+    }
+}
+
+// ================= MÉDICO =================
+function goDoctor(){
+    state="doctor";
+    playSound("outdoor.mp3", true);
+
+    setTimeout(()=>playSound("doctor_1.mp3", true),3000);
+    setTimeout(()=>playSound("doctor_2.mp3", true),20000);
+}
+
+function enterDoctor(){
+    playSound("doctor_3.mp3", true);
+
+    setTimeout(()=>{
+        new Audio("thermometer.mp3").play();
+
+        setTimeout(()=>{
+            let t = (36 + Math.random()*2).toFixed(1);
+            speak(babyName + " tiene " + t + " grados");
+        },10000);
+
+    },5000);
+
+    setTimeout(()=>playSound("doctor_4.mp3", true),25000);
+}
+
+function exitDoctor(){
+    playSound("outdoor.mp3", true);
+    state="idle";
+}
+
+// ================= JARABE =================
+function giveMedicine(){
+    playSound("medicine_swallow.mp3", true);
     temperature -= 0.5;
 }
 
-// ================== SONIDOS PASIVOS ==================
+// ================= PASIVO FELIZ =================
 setInterval(()=>{
-    if(state === "idle" && !activeSound && !passiveSoundPlaying) {
-        passiveSoundPlaying = true;
-
+    if(state==="idle" && !activeSound){
         if(Math.random()<0.5){
-            playSound("babble.mp3","passive");
-        } else {
-            playSound("laugh.mp3","passive");
+            playSound("babble.mp3");
+        }else{
+            playSound("laugh.mp3");
         }
     }
 },15000);
 
-// ================== ENFERMEDAD ==================
+// ================= ENFERMEDAD =================
 setInterval(()=>{
     if(sick && state==="idle" && !activeSound){
         if(Math.random()<0.5){
-            playSound("cough.mp3","passive");
-        } else {
-            playSound("sneeze.mp3","passive");
+            playSound("cough.mp3");
+        }else{
+            playSound("sneeze.mp3");
         }
     }
 },20000);
 
-</script></body>
+</script>
+
+</body>
 </html>
