@@ -1,223 +1,184 @@
-<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html><html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Baby Game</title>
+<title>Simulador de Bebé</title>
+</head><body><h1>Simulador de Bebé</h1><button onclick="prepareBottle()">Preparar biberón</button>
+<button onclick="feedBottle()">Dar biberón</button>
 
-<style>
-body { font-family: Arial; padding:16px; }
-button { width:100%; padding:16px; font-size:20px; margin:6px 0; }
-#panel { white-space:pre-line; background:#f3f3f3; padding:12px; border-radius:10px; }
-#status { position:absolute; left:-9999px; }
-</style>
-</head>
+<button onclick="prepareFood()">Preparar papilla</button>
+<button onclick="feedFood()">Dar papilla</button>
 
-<body>
+<button onclick="sleepBaby()">Dormir</button>
+<button onclick="wakeUp()">Despertar</button>
 
-<div id="panel"></div>
-<div id="status" aria-live="polite"></div>
+<button onclick="goDoctor()">Ir al médico</button>
+<button onclick="enterDoctor()">Entrar</button>
+<button onclick="exitDoctor()">Salir</button>
 
-<button onclick="feed()">🍽 Alimentar</button>
-<button onclick="bottle()">🍼 Preparar biberón</button>
-<button onclick="playGame()">🎲 Jugar</button>
+<button onclick="takeTemperature()">Tomar fiebre</button>
+<button onclick="giveMedicine()">Dar jarabe</button>
 
-<button onclick="soothe()">🤱 Arrullar</button>
-<button onclick="sleepBed()">🛏 Acostar y tapar</button>
+<p id="status"></p><script>
 
-<button onclick="bathWater()">💧 Dar agua</button>
-<button onclick="bathSoap()">🧼 Dar jabón</button>
-<button onclick="bathRinse()">🚿 Aclarar</button>
-<button onclick="bathDry()">🧽 Secar</button>
+// ================== ESTADO ==================
+let state = "idle";
+let sick = false;
+let temperature = 36.5;
+let medicineToday = 0;
+let lastMedicineDay = null;
 
-<button onclick="diaper()">🧷 Cambiar pañal</button>
-<button onclick="pacifier()">🍼 Chupete</button>
-<button onclick="walk()">🌳 Paseo</button>
-<button onclick="dress()">👕 Vestir</button>
-<button onclick="rattle()">🪇 Sonajero</button>
-<button onclick="hug()">🤗 Abrazar</button>
+let passiveSoundPlaying = false;
+let activeSound = null;
 
-<audio id="cry_hunger" src="cry_hunger.mp3"></audio>
-<audio id="cry_sleep" src="cry_sleep.mp3"></audio>
-<audio id="cry_discomfort" src="cry_discomfort.mp3"></audio>
+// ================== UTIL ==================
+function playSound(src, type="active") {
+    if (state !== "idle" && type === "passive") return;
+    if (activeSound) return;
 
-<audio id="bottle_prepare" src="bottle_prepare.mp3"></audio>
-<audio id="bottle_drink" src="bottle_drink.mp3"></audio>
+    let audio = new Audio(src);
+    activeSound = audio;
 
-<audio id="laugh" src="laugh.mp3"></audio>
-<audio id="babble" src="babble.mp3"></audio>
+    audio.play();
 
-<audio id="sleep" src="sleep.mp3"></audio>
-<audio id="musicbox" src="musicbox.mp3"></audio>
-<audio id="blanket" src="blanket.mp3"></audio>
-
-<audio id="bath_water" src="bath_water.mp3"></audio>
-<audio id="bath_soap" src="bath_soap.mp3"></audio>
-<audio id="bath_dry" src="bath_dry.mp3"></audio>
-
-<audio id="diaper_sound" src="diaper.mp3"></audio>
-
-<audio id="pacifier_sound" src="pacifier.mp3"></audio>
-<audio id="outdoor_sound" src="outdoor.mp3"></audio>
-<audio id="clothes_sound" src="clothes.mp3"></audio>
-<audio id="rattle_sound" src="rattle.mp3"></audio>
-
-<script>
-
-document.addEventListener("click", initAudio, { once:true });
-
-function initAudio(){
-  document.querySelectorAll("audio").forEach(a=>{
-    a.play().then(()=>{a.pause(); a.currentTime=0;}).catch(()=>{});
-  });
+    audio.onended = () => {
+        activeSound = null;
+        passiveSoundPlaying = false;
+    };
 }
 
-let saved = localStorage.getItem("babySave");
-
-let baby = saved ? JSON.parse(saved) : {
-  hunger: 50,
-  energy: 50,
-  comfort: 50,
-  affection: 50,
-  mood: "normal",
-  lastTime: Date.now()
-};
-
-let sleepReady = false;
-
-function save(){
-  baby.lastTime = Date.now();
-  localStorage.setItem("babySave", JSON.stringify(baby));
+// ================== BIBERÓN ==================
+function prepareBottle() {
+    state = "feeding";
+    playSound("bottle_prepare.mp3");
 }
 
-function play(id){
-  let a = document.getElementById(id);
-  if(!a) return;
-  a.currentTime = 0;
-  a.play().catch(()=>{});
+function feedBottle() {
+    state = "feeding";
+    playSound("bottle_drink.mp3");
+    setTimeout(()=> state="idle",3000);
 }
 
-function updateMood(){
-  if(baby.energy < 20) baby.mood = "cansado";
-  else if(baby.hunger < 20 || baby.comfort < 20) baby.mood = "triste";
-  else if(baby.affection > 70) baby.mood = "feliz";
-  else baby.mood = "normal";
-
-  announceMood();
+// ================== PAPILLA ==================
+function prepareFood() {
+    playSound("food_prepare.mp3");
 }
 
-function announceMood(){
-  let text = "";
+function feedFood() {
+    state = "feeding";
 
-  if(baby.mood === "feliz") text = "El bebé está feliz";
-  if(baby.mood === "triste") text = "El bebé está triste";
-  if(baby.mood === "cansado") text = "El bebé está cansado";
-  if(baby.affection < 25) text = "El bebé quiere mimos";
+    let spoon = new Audio("spoon_in_bowl.mp3");
+    let eat = new Audio("food_eat.mp3");
 
-  document.getElementById("status").innerText = text;
+    spoon.play();
+    eat.play();
+
+    setTimeout(()=> state="idle",4000);
 }
 
-function update(){
-  updateMood();
-  document.getElementById("panel").innerText =
-    "Hambre: " + baby.hunger +
-    " | Energía: " + baby.energy +
-    " | Confort: " + baby.comfort +
-    " | Afecto: " + baby.affection +
-    " | Estado: " + baby.mood;
-  save();
-}
-
-function feed(){ play("bottle_drink"); baby.hunger += 30; update(); }
-function bottle(){ play("bottle_prepare"); }
-function playGame(){ play("laugh"); baby.affection += 10; update(); }
-
-function soothe(){
-  play("musicbox");
-  baby.energy += 8;
-  baby.comfort += 5;
-
-  if(Math.random() < 0.5){
-    sleepReady = true;
-  }
-
-  update();
-}
-
-function sleepBed(){
-
-  if(sleepReady){
-    play("blanket");
-    setTimeout(()=>play("sleep"), 1200);
-
-    baby.energy += 30;
-    sleepReady = false;
-
-  } else {
-    play("cry_sleep");
-    baby.comfort -= 5;
-
-    if(Math.random() < 0.3){
-      sleepReady = true;
+// ================== SUEÑO ==================
+function sleepBaby() {
+    if (Math.random() < 0.5) {
+        playSound("cry.mp3");
+    } else {
+        state = "sleep";
+        playSound("sleep.mp3");
     }
-  }
-
-  update();
 }
 
-function bathWater(){ play("bath_water"); baby.comfort += 5; update(); }
-function bathSoap(){ play("bath_soap"); baby.comfort += 5; update(); }
-function bathRinse(){ play("bath_water"); baby.comfort += 5; update(); }
-function bathDry(){ play("bath_dry"); baby.comfort += 10; update(); }
-
-function diaper(){ play("diaper_sound"); baby.comfort += 15; update(); }
-function pacifier(){ play("pacifier_sound"); baby.comfort += 10; update(); }
-function walk(){ play("outdoor_sound"); baby.affection += 10; update(); }
-function dress(){ play("clothes_sound"); baby.comfort += 10; update(); }
-function rattle(){ play("rattle_sound"); baby.affection += 8; update(); }
-
-function hug(){
-  play("babble");
-  baby.affection += 20;
-  baby.comfort += 5;
-  update();
+function wakeUp() {
+    state = "idle";
 }
 
+// ================== MÉDICO ==================
+function goDoctor() {
+    state = "doctor";
+    playSound("outdoor.mp3");
+
+    setTimeout(()=> playSound("doctor_1.mp3"),3000);
+    setTimeout(()=> playSound("doctor_2.mp3"),20000);
+}
+
+function enterDoctor() {
+    playSound("doctor_3.mp3");
+
+    setTimeout(()=> {
+        let t = generateTemp();
+        new Audio("thermometer.mp3").play();
+        setTimeout(()=> {
+            alert("Temperatura: " + t + "°C");
+        },10000);
+    },5000);
+
+    setTimeout(()=> playSound("doctor_4.mp3"),20000);
+}
+
+function exitDoctor() {
+    playSound("outdoor.mp3");
+    state = "idle";
+}
+
+// ================== TEMPERATURA ==================
+function generateTemp() {
+    if (sick) {
+        temperature = (37.5 + Math.random()*2).toFixed(1);
+    } else {
+        temperature = (36 + Math.random()*1.2).toFixed(1);
+    }
+    return temperature;
+}
+
+function takeTemperature() {
+    new Audio("thermometer.mp3").play();
+    setTimeout(()=> {
+        let t = generateTemp();
+        alert("Temperatura: " + t + "°C");
+    },4000);
+}
+
+// ================== JARABE ==================
+function giveMedicine() {
+    let today = new Date().toDateString();
+
+    if (lastMedicineDay !== today) {
+        medicineToday = 0;
+        lastMedicineDay = today;
+    }
+
+    if (medicineToday >= 3) {
+        alert("Ya ha tomado suficiente jarabe hoy");
+        return;
+    }
+
+    medicineToday++;
+
+    playSound("medicine_swallow.mp3");
+
+    temperature -= 0.5;
+}
+
+// ================== SONIDOS PASIVOS ==================
 setInterval(()=>{
+    if(state === "idle" && !activeSound && !passiveSoundPlaying) {
+        passiveSoundPlaying = true;
 
-  baby.hunger -= 0.3;
-  baby.energy -= 0.25;
-  baby.comfort -= 0.2;
-  baby.affection -= 0.3;
+        if(Math.random()<0.5){
+            playSound("babble.mp3","passive");
+        } else {
+            playSound("laugh.mp3","passive");
+        }
+    }
+},15000);
 
-  if(Math.random() < 0.15) play("babble");
+// ================== ENFERMEDAD ==================
+setInterval(()=>{
+    if(sick && state==="idle" && !activeSound){
+        if(Math.random()<0.5){
+            playSound("cough.mp3","passive");
+        } else {
+            playSound("sneeze.mp3","passive");
+        }
+    }
+},20000);
 
-  if(baby.hunger < 20 && Math.random() < 0.25) play("cry_hunger");
-  else if(baby.energy < 20 && Math.random() < 0.25) play("cry_sleep");
-  else if(baby.comfort < 20 && Math.random() < 0.25) play("cry_discomfort");
-
-  update();
-
-}, 15000);
-
-function offlineProgress(){
-  let now = Date.now();
-  let diff = (now - baby.lastTime) / 1000;
-  let decay = diff / 200;
-
-  baby.hunger -= decay;
-  baby.energy -= decay;
-  baby.comfort -= decay;
-  baby.affection -= decay;
-
-  ["hunger","energy","comfort","affection"].forEach(k=>{
-    if(baby[k] < 0) baby[k] = 0;
-  });
-}
-
-offlineProgress();
-update();
-
-</script>
-
-</body>
+</script></body>
 </html>
