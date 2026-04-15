@@ -30,10 +30,10 @@
 <button onclick="walk()">Paseo</button>
 
 <!-- ALIMENTACIÓN -->
-<button onclick="prepareBottle()">Preparar biberón</button>
+<button onclick="prepareBottle()">Biberón</button>
 <button onclick="feedBottle()">Dar biberón</button>
 
-<button onclick="prepareFood()">Preparar papilla</button>
+<button onclick="prepareFood()">Papilla</button>
 <button onclick="feedFood()">Dar papilla</button>
 
 <!-- BAÑO -->
@@ -56,7 +56,7 @@
 <button onclick="exitDoctor()">Salir</button>
 
 <!-- SALUD -->
-<button onclick="takeTemperature()">Tomar fiebre</button>
+<button onclick="takeTemperature()">Fiebre</button>
 <button onclick="giveMedicine()">Jarabe</button>
 
 <p id="status"></p>
@@ -67,225 +67,280 @@
 <script>
 
 // ================= ESTADO =================
-let state = "idle";
-let activeSound = null;
+let state="idle";
+let activeSound=null;
 
-let babyName = "";
-let babyGender = "";
-let startTime = Date.now();
+let babyName="";
+let babyGender="";
+let startTime=Date.now();
 
-let sick = false;
-let temperature = 36.5;
+let sick=false;
+let temperature=36.5;
 
-// ================= CARGA PERSISTENTE =================
-babyName = localStorage.getItem("babyName") || "";
-babyGender = localStorage.getItem("babyGender") || "";
-startTime = Number(localStorage.getItem("startTime")) || Date.now();
+// ================= EMOCIONES =================
+let mood="neutral";
+let moodScore=50;
+
+// ================= NECESIDADES =================
+let hunger=30;
+let sleep=30;
+let comfort=70;
+let diaperDirty=false;
+
+// ================= TALKBACK CONTROL =================
+let lastSpeakTime=0;
+let lastEvent="";
+
+function announceEvent(text,id){
+
+    let now=Date.now();
+
+    if(now-lastSpeakTime<20000) return;
+    if(lastEvent===id) return;
+
+    lastSpeakTime=now;
+    lastEvent=id;
+
+    document.getElementById("status").innerText=text;
+}
+
+function markAction(){
+    lastSpeakTime=Date.now();
+}
 
 // ================= AUDIO =================
-function playSound(src, force=false){
-    if(!force && state !== "idle") return;
+function playSound(src,force=false){
+
+    if(!force && state!=="idle") return;
     if(activeSound) return;
 
-    let audio = new Audio(src);
-    activeSound = audio;
+    let audio=new Audio(src);
+    activeSound=audio;
 
     audio.play();
-    audio.onended = ()=> activeSound = null;
+    audio.onended=()=>activeSound=null;
 }
 
 // ================= INICIO =================
+babyName=localStorage.getItem("babyName")||"";
+babyGender=localStorage.getItem("babyGender")||"";
+startTime=Number(localStorage.getItem("startTime"))||Date.now();
+
 function startGame(){
 
-    babyName = document.getElementById("babyName").value || "Bebé";
-    babyGender = document.getElementById("babyGender").value;
+    babyName=document.getElementById("babyName").value||"Bebé";
+    babyGender=document.getElementById("babyGender").value;
 
-    startTime = Date.now();
+    startTime=Date.now();
 
-    localStorage.setItem("babyName", babyName);
-    localStorage.setItem("babyGender", babyGender);
-    localStorage.setItem("startTime", startTime);
+    localStorage.setItem("babyName",babyName);
+    localStorage.setItem("babyGender",babyGender);
+    localStorage.setItem("startTime",startTime);
 
     document.getElementById("startScreen").style.display="none";
     document.getElementById("game").style.display="block";
 
-    document.getElementById("status").innerText =
-    babyName + " ha nacido";
+    announceEvent(babyName+" ha nacido","start");
 }
 
 // ================= EDAD =================
 function getAgeYears(){
-    let days = (Date.now()-startTime)/86400000;
-    return days/20; // 60 días = 3 años
+    let days=(Date.now()-startTime)/86400000;
+    return days/20;
 }
 
-// mostrar edad en pantalla
 setInterval(()=>{
-    let age = getAgeYears();
-    document.getElementById("age").innerText =
-    "Edad: " + age.toFixed(2) + " años";
-}, 1000);
+    document.getElementById("age").innerText=
+    "Edad: "+getAgeYears().toFixed(2)+" años";
+},1000);
 
-// ================= ALIMENTACIÓN =================
+// ================= PAPILLA =================
 function isFoodUnlocked(){
-    return getAgeYears() >= 0.5;
+    return getAgeYears()>=0.5;
 }
 
 // ================= JUGAR =================
 function playBaby(){
-    state="play";
-    playSound("laugh.mp3", true);
+    markAction();
+
+    moodScore+=25;
+    playSound("laugh.mp3",true);
+
     setTimeout(()=>state="idle",3000);
 }
 
 // ================= ABRAZAR =================
 function hugBaby(){
-    state="comfort";
-    playSound("babble.mp3", true);
+    markAction();
+
+    moodScore+=20;
+    comfort+=15;
+
+    playSound("babble.mp3",true);
+
     setTimeout(()=>state="idle",3000);
 }
 
 // ================= SONAJERO =================
 function rattle(){
-    state="play";
-    playSound("rattle.mp3", true);
-    setTimeout(()=>state="idle",3000);
+    markAction();
+    playSound("rattle.mp3",true);
 }
 
 // ================= CHUPETE =================
 function pacifier(){
-    state="action";
-    playSound("pacifier.mp3", true);
-    setTimeout(()=>state="idle",3000);
+    markAction();
+    playSound("pacifier.mp3",true);
 }
 
 // ================= PASEO =================
 function walk(){
-    state="action";
-    playSound("outdoor.mp3", true);
-    setTimeout(()=>state="idle",4000);
+    markAction();
+    playSound("outdoor.mp3",true);
 }
 
 // ================= BIBERÓN =================
 function prepareBottle(){
-    state="feeding";
-    playSound("bottle_prepare.mp3", true);
+    markAction();
+    playSound("bottle_prepare.mp3",true);
 }
 
 function feedBottle(){
-    state="feeding";
-    playSound("bottle_drink.mp3", true);
-    setTimeout(()=>state="idle",3000);
+    markAction();
+    hunger-=30;
+    playSound("bottle_drink.mp3",true);
 }
 
 // ================= PAPILLA =================
 function prepareFood(){
-    if(!isFoodUnlocked()){
-        document.getElementById("status").innerText="Aún no puede tomar papilla";
-        return;
-    }
-    playSound("food_prepare.mp3", true);
+    if(!isFoodUnlocked()) return;
+    playSound("food_prepare.mp3",true);
 }
 
 function feedFood(){
     if(!isFoodUnlocked()) return;
 
-    state="feeding";
+    markAction();
 
     new Audio("spoon_in_bowl.mp3").play();
     new Audio("food_eat.mp3").play();
 
-    setTimeout(()=>state="idle",4000);
+    hunger-=25;
 }
 
 // ================= BAÑO =================
-function bathWater(){ state="bath"; playSound("bath_water.mp3", true); }
-function bathSoap(){ state="bath"; playSound("bath_soap.mp3", true); }
-function bathRinse(){ state="bath"; playSound("bath_water.mp3", true); }
+function bathWater(){ playSound("bath_water.mp3",true); }
+function bathSoap(){ playSound("bath_soap.mp3",true); }
+function bathRinse(){ playSound("bath_water.mp3",true); }
 
 function bathDry(){
-    state="bath";
-    playSound("bath_dry.mp3", true);
-    setTimeout(()=>state="idle",3000);
+    playSound("bath_dry.mp3",true);
 }
 
 // ================= CUIDADOS =================
-function changeDiaper(){ playSound("diaper.mp3", true); }
-function dress(){ playSound("clothes.mp3", true); }
+function changeDiaper(){
+    diaperDirty=false;
+    comfort+=25;
+    playSound("diaper.mp3",true);
+    announceEvent("Pañal cambiado","diaper_clean");
+}
+
+function dress(){
+    playSound("clothes.mp3",true);
+}
 
 // ================= SUEÑO =================
 function soothe(){
-    state="sleep";
-    playSound("musicbox.mp3", true);
+    playSound("musicbox.mp3",true);
 }
 
 function sleepBaby(){
     if(Math.random()<0.5){
-        state="cry";
-        playSound("cry.mp3", true);
-    } else {
-        state="sleep";
-        playSound("sleep.mp3", true);
+        playSound("cry.mp3",true);
+    }else{
+        playSound("sleep.mp3",true);
     }
 }
 
 // ================= MÉDICO =================
 function goDoctor(){
-    state="doctor";
-    playSound("outdoor.mp3", true);
-
-    setTimeout(()=>playSound("doctor_1.mp3", true),3000);
-    setTimeout(()=>playSound("doctor_2.mp3", true),20000);
+    playSound("outdoor.mp3",true);
+    setTimeout(()=>playSound("doctor_1.mp3",true),3000);
+    setTimeout(()=>playSound("doctor_2.mp3",true),20000);
 }
 
 function enterDoctor(){
-    playSound("doctor_3.mp3", true);
+    playSound("doctor_3.mp3",true);
 
     setTimeout(()=>{
         new Audio("thermometer.mp3").play();
 
         setTimeout(()=>{
-            let t = (36 + Math.random()*2).toFixed(1);
-            document.getElementById("status").innerText =
-            babyName + " tiene " + t + "°C";
+            let t=(36+Math.random()*2).toFixed(1);
+            announceEvent(babyName+" tiene "+t+"°C","fever");
         },10000);
 
     },5000);
 
-    setTimeout(()=>playSound("doctor_4.mp3", true),25000);
+    setTimeout(()=>playSound("doctor_4.mp3",true),25000);
 }
 
 function exitDoctor(){
-    playSound("outdoor.mp3", true);
-    state="idle";
+    playSound("outdoor.mp3",true);
 }
 
 // ================= JARABE =================
 function giveMedicine(){
-    playSound("medicine_swallow.mp3", true);
+    playSound("medicine_swallow.mp3",true);
 }
 
-// ================= SONIDOS PASIVOS =================
+// ================= EMOCIONES =================
 setInterval(()=>{
-    if(state==="idle" && !activeSound){
+
+    moodScore -= hunger*0.01;
+    moodScore -= (diaperDirty?1:0.2);
+
+    if(moodScore>70) mood="happy";
+    else if(moodScore<40) mood="sad";
+    else mood="neutral";
+
+},5000);
+
+setInterval(()=>{
+    if(mood==="sad"){
+        announceEvent("El bebé está triste","mood_sad");
+    }
+    if(mood==="happy"){
+        announceEvent("El bebé está feliz","mood_happy");
+    }
+},15000);
+
+// ================= PAÑAL =================
+setInterval(()=>{
+    if(state!=="idle") return;
+
+    if(Math.random()<0.01){
+        diaperDirty=true;
+        comfort-=15;
+        announceEvent("El bebé ha ensuciado el pañal","diaper");
+    }
+
+},5000);
+
+// ================= PASIVOS MUY REDUCIDOS =================
+setInterval(()=>{
+    if(state!=="idle") return;
+    if(activeSound) return;
+
+    if(Math.random()<0.10){
         if(Math.random()<0.5){
             playSound("babble.mp3");
         }else{
             playSound("laugh.mp3");
         }
     }
-},15000);
 
-// ================= ENFERMEDAD =================
-setInterval(()=>{
-    if(sick && state==="idle" && !activeSound){
-        if(Math.random()<0.5){
-            playSound("cough.mp3");
-        }else{
-            playSound("sneeze.mp3");
-        }
-    }
-},20000);
+},30000);
 
 </script>
 
