@@ -9,7 +9,6 @@
 
 <h1>Simulador de Bebé</h1>
 
-<!-- INICIO -->
 <div id="startScreen">
     <h2>Crear bebé</h2>
     <input id="babyName" placeholder="Nombre del bebé">
@@ -20,7 +19,6 @@
     <button onclick="startGame()">Empezar</button>
 </div>
 
-<!-- JUEGO -->
 <div id="game" style="display:none">
 
 <button onclick="playBaby()">Jugar</button>
@@ -56,7 +54,6 @@
 
 <p id="status" aria-live="polite"></p>
 <p id="age"></p>
-
 <p id="hunger"></p>
 <p id="sleep"></p>
 <p id="comfort"></p>
@@ -76,19 +73,27 @@ let diaperDirty=false;
 let state="idle";
 let activeSound=null;
 
+// 🔊 NUEVO SISTEMA SONIDOS
+let lastRandomSound=null;
+let learnedCounting=false;
+
+// 🎧 sonidos por edad
+let babySoundsByAge = {
+    base: ["babble.mp3","laugh.mp3","aaah_aaah.mp3"],
+    mid: ["tatata.mp3","dada.mp3"],
+    late: ["popopo_ti_ta.mp3","mama_papa_tete.mp3"]
+};
+
 // ================= TALKBACK =================
 let lastSpeak=0;
 let lastEvent="";
 
 function announce(text,id){
     let now=Date.now();
-
     if(now-lastSpeak<30000) return;
     if(lastEvent===id) return;
-
     lastSpeak=now;
     lastEvent=id;
-
     document.getElementById("status").innerText=text;
 }
 
@@ -117,7 +122,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 // ================= START =================
 function startGame(){
-
     babyName=document.getElementById("babyName").value||"Bebé";
     babyGender=document.getElementById("babyGender").value;
     startTime=Date.now();
@@ -144,7 +148,6 @@ setInterval(()=>{
 
 // ================= ESTADO =================
 setInterval(()=>{
-
     hunger+=0.2;
     sleep+=0.15;
     comfort-=0.1;
@@ -257,17 +260,60 @@ function enterDoctor(){
 function exitDoctor(){ playSound("outdoor.mp3"); }
 function giveMedicine(){ playSound("medicine_swallow.mp3"); }
 
-// ================= SONIDOS PASIVOS =================
-setInterval(()=>{
-    if(state!=="idle") return;
-    if(activeSound) return;
+// ================= SONIDOS ALEATORIOS =================
+function babyRandomSounds(){
 
-    if(Math.random()<0.05){
-        Math.random()<0.5
-        ? playSound("babble.mp3")
-        : playSound("laugh.mp3");
-    }
-},30000);
+    if(state!=="idle") return;
+
+    let delay = 15000 + Math.random()*30000;
+
+    setTimeout(()=>{
+
+        if(!activeSound && Math.random()<0.8){
+
+            let age = getAge();
+
+            let pool = [...babySoundsByAge.base];
+
+            if(age > 0.5){
+                pool.push(...babySoundsByAge.mid);
+            }
+
+            if(age > 1.5){
+                pool.push(...babySoundsByAge.late);
+            }
+
+            if(hunger > 70 || sleep > 70){
+                pool.push("babble_and_cry.mp3");
+            }
+
+            // 🎂 Conteo
+            if(age > 2.8){
+                learnedCounting = true;
+            }
+
+            if(learnedCounting && Math.random()<0.2){
+                playSound("contar_1_10.mp3");
+                return;
+            }
+
+            let sound;
+            do{
+                sound = pool[Math.floor(Math.random()*pool.length)];
+            }while(sound === lastRandomSound && pool.length>1);
+
+            lastRandomSound = sound;
+
+            playSound(sound);
+        }
+
+        babyRandomSounds();
+
+    },delay);
+}
+
+// 🚀 INICIO
+babyRandomSounds();
 
 </script>
 
