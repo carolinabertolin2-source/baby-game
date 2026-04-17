@@ -20,30 +20,25 @@
 
 <div id="game" style="display:none">
 
-<!-- INTERACCIONES -->
 <button onclick="playBaby()">Jugar</button>
 <button onclick="hugBaby()">Abrazar</button>
 <button onclick="rattle()">Sonajero</button>
 <button onclick="pacifier()">Chupete</button>
 <button onclick="walk()">Paseo</button>
 
-<!-- COMIDA -->
 <button onclick="prepareBottle()">Preparar biberón</button>
 <button onclick="feedBottle()">Dar biberón</button>
 <button onclick="prepareFood()">Preparar papilla</button>
 <button onclick="feedFood()">Dar papilla</button>
 
-<!-- BAÑO -->
 <button onclick="bathWater()">Agua</button>
 <button onclick="bathSoap()">Jabón</button>
 <button onclick="bathRinse()">Aclarar</button>
 <button onclick="bathDry()">Secar</button>
 
-<!-- CUIDADO -->
 <button onclick="soothe()">Arrullar</button>
 <button onclick="sleepBaby()">Dormir</button>
 
-<!-- MÉDICO -->
 <button onclick="takeTemperature()">Tomar temperatura</button>
 <button onclick="goDoctor()">Ir al médico</button>
 <button onclick="enterDoctor()">Entrar</button>
@@ -60,52 +55,53 @@
 
 <script>
 
-// ================= VARIABLES =================
+// VARIABLES
 let babyName="", babyGender="";
 let startTime=Date.now();
-let lastTime=Date.now();
 
 let hunger=30, sleep=30, comfort=70;
 let state="idle";
 let activeSound=null;
 
-// enfermedad
-let babySick=false;
-let temperature=36.5;
-let medicineGiven=0;
-let lastMedicineTime=0;
-let sickStartTime=0;
-
-// sonidos
 let lastRandomSound=null;
 
-// ================= EDAD =================
+// EDAD (2 meses reales = 3 años)
 function getAge(){
     let elapsed = Date.now() - startTime;
     let total = 60*24*60*60*1000;
     return Math.min(3,(elapsed/total)*3);
 }
 
-// ================= AUDIO =================
+// SONIDO (ARREGLADO)
 function playSound(src){
-    if(activeSound) return;
-    let a=new Audio(src);
-    activeSound=a;
-    a.play();
-    a.onended=()=>activeSound=null;
+    try{
+        let a = new Audio(src);
+        activeSound = a;
+        a.play().catch(()=>{});
+        a.onended = ()=>{ activeSound = null; };
+
+        setTimeout(()=>{
+            if(activeSound === a){
+                activeSound = null;
+            }
+        },5000);
+
+    }catch(e){}
 }
 
-// ================= START =================
+// START
 function startGame(){
 
     babyName = document.getElementById("babyName").value || "Bebé";
     babyGender = document.getElementById("babyGender").value;
 
-    startTime = Date.now();
+    if(!localStorage.getItem("startTime")){
+        startTime = Date.now();
+        localStorage.setItem("startTime", startTime);
+    }
 
     localStorage.setItem("babyName", babyName);
     localStorage.setItem("babyGender", babyGender);
-    localStorage.setItem("startTime", startTime);
     localStorage.setItem("lastTime", Date.now());
 
     document.getElementById("startScreen").style.display="none";
@@ -114,7 +110,7 @@ function startGame(){
     document.getElementById("status").innerText = babyName + " ha nacido";
 }
 
-// ================= CARGA =================
+// CARGA
 document.addEventListener("DOMContentLoaded", ()=>{
 
     let savedName = localStorage.getItem("babyName");
@@ -134,7 +130,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         "Has vuelto con " + babyName;
     }
 
-    // ⏳ SIMULAR TIEMPO PASADO
     if(savedLast){
         let diff = Date.now()-savedLast;
         let sec = diff/1000;
@@ -147,13 +142,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
         sleep = Math.min(100,sleep);
         comfort = Math.max(0,comfort);
 
-        // 😭 LLANTO AL VOLVER
         if(hunger>80 || sleep>80 || comfort<20){
-            setTimeout(()=>{
-                if(!activeSound){
-                    playSound("cry.mp3");
-                }
-            },1000);
+            setTimeout(()=>{ playSound("cry.mp3"); },1000);
         }
     }
 });
@@ -163,7 +153,7 @@ setInterval(()=>{
     localStorage.setItem("lastTime",Date.now());
 },5000);
 
-// ================= UI =================
+// UI
 setInterval(()=>{
     document.getElementById("age").innerText =
     "Edad: " + getAge().toFixed(2) + " años";
@@ -178,20 +168,20 @@ setInterval(()=>{
     "Confort: " + comfort.toFixed(0);
 },1000);
 
-// ================= INTERACCIONES =================
+// INTERACCIONES
 function playBaby(){ playSound("laugh.mp3"); comfort+=5; }
 function hugBaby(){ playSound("babble.mp3"); comfort+=10; }
 function rattle(){ playSound("rattle.mp3"); }
 function pacifier(){ playSound("pacifier.mp3"); }
 function walk(){ playSound("outdoor.mp3"); }
 
-// ================= COMIDA =================
+// COMIDA
 function prepareBottle(){ playSound("bottle_prepare.mp3"); }
 function feedBottle(){ hunger-=30; playSound("bottle_drink.mp3"); }
 
 function prepareFood(){
     if(getAge()<0.5){
-        document.getElementById("status").innerText="Aún es pequeño para papilla";
+        document.getElementById("status").innerText="Aún es pequeño";
         return;
     }
     playSound("food_prepare.mp3");
@@ -199,48 +189,35 @@ function prepareFood(){
 
 function feedFood(){
     if(getAge()<0.5){
-        document.getElementById("status").innerText="Aún no puede comer papilla";
+        document.getElementById("status").innerText="Aún no puede";
         return;
     }
     hunger-=25;
     playSound("food_eat.mp3");
 }
 
-// ================= BAÑO =================
+// BAÑO
 function bathWater(){ playSound("bath_water.mp3"); }
 function bathSoap(){ playSound("bath_soap.mp3"); }
 function bathRinse(){ playSound("bath_water.mp3"); }
 function bathDry(){ playSound("bath_dry.mp3"); }
 
-// ================= SUEÑO =================
+// SUEÑO
 function soothe(){ playSound("musicbox.mp3"); }
 
 function sleepBaby(){
-
-    if(Math.random()<0.5){
-        playSound("cry.mp3");
-        return;
-    }
-
     state="sleeping";
 
-    let breathing=setInterval(()=>{
-        if(!activeSound){
-            playSound("breathing.mp3");
-        }
-    },8000);
-
-    let sleepInterval=setInterval(()=>{
+    let interval=setInterval(()=>{
         sleep-=2;
         if(sleep<=10){
-            clearInterval(sleepInterval);
-            clearInterval(breathing);
+            clearInterval(interval);
             state="idle";
         }
     },2000);
 }
 
-// ================= SONIDOS ALEATORIOS =================
+// SONIDOS ALEATORIOS
 let sounds=[
 "babble.mp3","laugh.mp3","aaah_aaah.mp3",
 "tatata.mp3","dada.mp3",
@@ -255,20 +232,17 @@ function babyRandomSounds(){
 
     setTimeout(()=>{
 
-        if(!activeSound){
+        if(hunger>85){ playSound("cry_hunger.mp3"); return; }
+        if(sleep>85){ playSound("cry_sleep.mp3"); return; }
+        if(comfort<15){ playSound("cry_discomfort.mp3"); return; }
 
-            if(hunger>85){ playSound("cry_hunger.mp3"); return; }
-            if(sleep>85){ playSound("cry_sleep.mp3"); return; }
-            if(comfort<15){ playSound("cry_discomfort.mp3"); return; }
+        let s;
+        do{
+            s=sounds[Math.floor(Math.random()*sounds.length)];
+        }while(s===lastRandomSound);
 
-            let s;
-            do{
-                s=sounds[Math.floor(Math.random()*sounds.length)];
-            }while(s===lastRandomSound);
-
-            lastRandomSound=s;
-            playSound(s);
-        }
+        lastRandomSound=s;
+        playSound(s);
 
         babyRandomSounds();
 
