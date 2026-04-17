@@ -10,7 +10,11 @@
 <h1>Simulador de Bebé</h1>
 
 <div id="startScreen">
-    <input id="babyName" placeholder="Nombre">
+    <input id="babyName" placeholder="Nombre del bebé">
+    <select id="babyGender">
+        <option value="boy">Niño</option>
+        <option value="girl">Niña</option>
+    </select>
     <button onclick="startGame()">Empezar</button>
 </div>
 
@@ -26,7 +30,6 @@
 <!-- COMIDA -->
 <button onclick="prepareBottle()">Preparar biberón</button>
 <button onclick="feedBottle()">Dar biberón</button>
-
 <button onclick="prepareFood()">Preparar papilla</button>
 <button onclick="feedFood()">Dar papilla</button>
 
@@ -49,13 +52,19 @@
 
 <p id="status"></p>
 <p id="age"></p>
+<p id="hunger"></p>
+<p id="sleep"></p>
+<p id="comfort"></p>
 
 </div>
 
 <script>
 
 // ================= VARIABLES =================
+let babyName="", babyGender="";
 let startTime=Date.now();
+let lastTime=Date.now();
+
 let hunger=30, sleep=30, comfort=70;
 let state="idle";
 let activeSound=null;
@@ -88,10 +97,86 @@ function playSound(src){
 
 // ================= START =================
 function startGame(){
-    startTime=Date.now();
+
+    babyName = document.getElementById("babyName").value || "Bebé";
+    babyGender = document.getElementById("babyGender").value;
+
+    startTime = Date.now();
+
+    localStorage.setItem("babyName", babyName);
+    localStorage.setItem("babyGender", babyGender);
+    localStorage.setItem("startTime", startTime);
+    localStorage.setItem("lastTime", Date.now());
+
     document.getElementById("startScreen").style.display="none";
     document.getElementById("game").style.display="block";
+
+    document.getElementById("status").innerText = babyName + " ha nacido";
 }
+
+// ================= CARGA =================
+document.addEventListener("DOMContentLoaded", ()=>{
+
+    let savedName = localStorage.getItem("babyName");
+    let savedGender = localStorage.getItem("babyGender");
+    let savedStart = Number(localStorage.getItem("startTime"));
+    let savedLast = Number(localStorage.getItem("lastTime"));
+
+    if(savedName){
+        babyName = savedName;
+        babyGender = savedGender;
+        startTime = savedStart;
+
+        document.getElementById("startScreen").style.display="none";
+        document.getElementById("game").style.display="block";
+
+        document.getElementById("status").innerText =
+        "Has vuelto con " + babyName;
+    }
+
+    // ⏳ SIMULAR TIEMPO PASADO
+    if(savedLast){
+        let diff = Date.now()-savedLast;
+        let sec = diff/1000;
+
+        hunger += sec*0.02;
+        sleep += sec*0.015;
+        comfort -= sec*0.01;
+
+        hunger = Math.min(100,hunger);
+        sleep = Math.min(100,sleep);
+        comfort = Math.max(0,comfort);
+
+        // 😭 LLANTO AL VOLVER
+        if(hunger>80 || sleep>80 || comfort<20){
+            setTimeout(()=>{
+                if(!activeSound){
+                    playSound("cry.mp3");
+                }
+            },1000);
+        }
+    }
+});
+
+// guardar tiempo
+setInterval(()=>{
+    localStorage.setItem("lastTime",Date.now());
+},5000);
+
+// ================= UI =================
+setInterval(()=>{
+    document.getElementById("age").innerText =
+    "Edad: " + getAge().toFixed(2) + " años";
+
+    document.getElementById("hunger").innerText =
+    "Hambre: " + hunger.toFixed(0);
+
+    document.getElementById("sleep").innerText =
+    "Sueño: " + sleep.toFixed(0);
+
+    document.getElementById("comfort").innerText =
+    "Confort: " + comfort.toFixed(0);
+},1000);
 
 // ================= INTERACCIONES =================
 function playBaby(){ playSound("laugh.mp3"); comfort+=5; }
@@ -102,11 +187,7 @@ function walk(){ playSound("outdoor.mp3"); }
 
 // ================= COMIDA =================
 function prepareBottle(){ playSound("bottle_prepare.mp3"); }
-
-function feedBottle(){
-    hunger-=30;
-    playSound("bottle_drink.mp3");
-}
+function feedBottle(){ hunger-=30; playSound("bottle_drink.mp3"); }
 
 function prepareFood(){
     if(getAge()<0.5){
@@ -157,116 +238,6 @@ function sleepBaby(){
             state="idle";
         }
     },2000);
-}
-
-// ================= ENFERMEDAD =================
-setInterval(()=>{
-    if(!babySick && Math.random()<0.01){
-        babySick=true;
-        sickStartTime=Date.now();
-        document.getElementById("status").innerText="El bebé parece enfermo";
-    }
-
-    if(babySick && !activeSound && state==="idle"){
-        if(Math.random()<0.4) playSound("cough.mp3");
-        else if(Math.random()<0.4) playSound("sneeze.mp3");
-    }
-},15000);
-
-// fiebre dinámica
-setInterval(()=>{
-    if(babySick){
-        temperature += (Math.random()-0.5)*0.2;
-        temperature=Math.max(37,Math.min(39,temperature));
-        comfort-=0.2;
-    }
-},10000);
-
-// ================= TERMÓMETRO =================
-function takeTemperature(){
-    playSound("thermometer.mp3");
-    setTimeout(()=>{
-        document.getElementById("status").innerText=
-        "Temperatura "+temperature.toFixed(1)+" grados";
-    },10000);
-}
-
-// ================= MEDICINA =================
-function giveMedicine(){
-    let now=Date.now();
-    if(now-lastMedicineTime<6*60*60*1000){
-        document.getElementById("status").innerText="Debe esperar";
-        return;
-    }
-
-    lastMedicineTime=now;
-    medicineGiven++;
-
-    playSound("medicine_swallow.mp3");
-
-    temperature-=0.5;
-}
-
-// curación
-setInterval(()=>{
-    if(!babySick) return;
-
-    let days=(Date.now()-sickStartTime)/(1000*60*60*24);
-
-    if(medicineGiven>=3 && days>=2){
-        babySick=false;
-        medicineGiven=0;
-        temperature=36.5;
-        document.getElementById("status").innerText="El bebé se ha recuperado";
-    }
-},60000);
-
-// ================= MÉDICO =================
-let doctorState="idle";
-
-function goDoctor(){
-    if(activeSound) return;
-    doctorState="waiting";
-    playSound("outdoor.mp3");
-
-    setTimeout(()=>playSound("doctor_1.mp3"),3000);
-
-    setTimeout(()=>{
-        doctorState="ready";
-        document.getElementById("status").innerText="Puedes entrar";
-    },12000);
-}
-
-function enterDoctor(){
-    if(doctorState!=="ready") return;
-    if(activeSound) return;
-
-    doctorState="inside";
-
-    playSound("doctor_2.mp3");
-
-    setTimeout(()=>{
-        playSound("doctor_3.mp3");
-
-        setTimeout(()=>{
-            playSound("thermometer.mp3");
-
-            setTimeout(()=>{
-                document.getElementById("status").innerText=
-                "Temperatura "+temperature.toFixed(1)+" grados";
-            },10000);
-
-        },8000);
-
-    },5000);
-
-    setTimeout(()=>playSound("doctor_4.mp3"),25000);
-}
-
-function exitDoctor(){
-    if(doctorState!=="inside") return;
-    doctorState="idle";
-    playSound("outdoor.mp3");
 }
 
 // ================= SONIDOS ALEATORIOS =================
