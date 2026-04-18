@@ -242,6 +242,25 @@ if(temperature>39.5) temperature=39.5;
 if(temperature>38) comfort-=0.3;
 },10000);
 
+// ===== 🤧 TOS Y ESTORNUDOS (AÑADIDO) =====
+setInterval(()=>{
+
+if(!babySick) return;
+if(state!=="idle") return;
+if(activeSound) return;
+
+let r=Math.random();
+
+if(r<0.5){
+playSound("cough.mp3");
+}else{
+playSound("sneeze.mp3");
+}
+
+document.getElementById("status").innerText="El bebé tose o estornuda";
+
+},30000);
+
 // ===== JARABE =====
 function getDay(){return Math.floor(Date.now()/(1000*60*60*24));}
 
