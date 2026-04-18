@@ -20,30 +20,30 @@
 
 <div id="game" style="display:none">
 
+<h2>Acciones</h2>
 <button onclick="playBaby()">Jugar</button>
 <button onclick="hugBaby()">Abrazar</button>
 <button onclick="rattle()">Sonajero</button>
 <button onclick="pacifier()">Chupete</button>
 <button onclick="walk()">Paseo</button>
 
+<h2>Comida</h2>
 <button onclick="prepareBottle()">Preparar biberón</button>
 <button onclick="feedBottle()">Dar biberón</button>
 <button onclick="prepareFood()">Preparar papilla</button>
 <button onclick="feedFood()">Dar papilla</button>
 
+<h2>Baño</h2>
 <button onclick="bathWater()">Agua</button>
 <button onclick="bathSoap()">Jabón</button>
 <button onclick="bathRinse()">Aclarar</button>
 <button onclick="bathDry()">Secar</button>
 
+<h2>Cuidado</h2>
+<button onclick="diaperChange()">Cambiar pañal</button>
+<button onclick="dressBaby()">Vestir</button>
 <button onclick="soothe()">Arrullar</button>
 <button onclick="sleepBaby()">Dormir</button>
-
-<button onclick="takeTemperature()">Tomar temperatura</button>
-<button onclick="goDoctor()">Ir al médico</button>
-<button onclick="enterDoctor()">Entrar</button>
-<button onclick="exitDoctor()">Salir</button>
-<button onclick="giveMedicine()">Jarabe</button>
 
 <p id="status"></p>
 <p id="age"></p>
@@ -56,117 +56,165 @@
 <script>
 
 // VARIABLES
-let babyName="", babyGender="";
 let startTime=Date.now();
-
-let hunger=30, sleep=30, comfort=70;
+let hunger=30, sleep=30, comfort=70, diaper=0;
 let state="idle";
 let activeSound=null;
+let lastSound=null;
 
-let lastRandomSound=null;
-
-// EDAD (2 meses reales = 3 años)
+// EDAD
 function getAge(){
     let elapsed = Date.now() - startTime;
     let total = 60*24*60*60*1000;
     return Math.min(3,(elapsed/total)*3);
 }
 
-// SONIDO (ARREGLADO)
+// SONIDO
 function playSound(src){
-    try{
-        let a = new Audio(src);
-        activeSound = a;
-        a.play().catch(()=>{});
-        a.onended = ()=>{ activeSound = null; };
-
-        setTimeout(()=>{
-            if(activeSound === a){
-                activeSound = null;
-            }
-        },5000);
-
-    }catch(e){}
+    let a=new Audio(src);
+    activeSound=a;
+    a.play().catch(()=>{});
+    a.onended=()=>activeSound=null;
 }
 
 // START
 function startGame(){
 
-    babyName = document.getElementById("babyName").value || "Bebé";
-    babyGender = document.getElementById("babyGender").value;
-
     if(!localStorage.getItem("startTime")){
-        startTime = Date.now();
-        localStorage.setItem("startTime", startTime);
+        startTime=Date.now();
+        localStorage.setItem("startTime",startTime);
+    }else{
+        startTime=Number(localStorage.getItem("startTime"));
     }
 
-    localStorage.setItem("babyName", babyName);
-    localStorage.setItem("babyGender", babyGender);
-    localStorage.setItem("lastTime", Date.now());
+    localStorage.setItem("lastTime",Date.now());
 
     document.getElementById("startScreen").style.display="none";
     document.getElementById("game").style.display="block";
-
-    document.getElementById("status").innerText = babyName + " ha nacido";
 }
 
 // CARGA
 document.addEventListener("DOMContentLoaded", ()=>{
 
-    let savedName = localStorage.getItem("babyName");
-    let savedGender = localStorage.getItem("babyGender");
-    let savedStart = Number(localStorage.getItem("startTime"));
-    let savedLast = Number(localStorage.getItem("lastTime"));
+    let savedStart=Number(localStorage.getItem("startTime"));
+    let savedLast=Number(localStorage.getItem("lastTime"));
 
-    if(savedName){
-        babyName = savedName;
-        babyGender = savedGender;
-        startTime = savedStart;
-
+    if(savedStart){
+        startTime=savedStart;
         document.getElementById("startScreen").style.display="none";
         document.getElementById("game").style.display="block";
-
-        document.getElementById("status").innerText =
-        "Has vuelto con " + babyName;
     }
 
     if(savedLast){
-        let diff = Date.now()-savedLast;
-        let sec = diff/1000;
+        let sec=(Date.now()-savedLast)/1000;
 
-        hunger += sec*0.02;
-        sleep += sec*0.015;
-        comfort -= sec*0.01;
+        hunger+=sec*0.02;
+        sleep+=sec*0.015;
+        diaper+=sec*0.02;
+        comfort-=sec*0.01;
 
-        hunger = Math.min(100,hunger);
-        sleep = Math.min(100,sleep);
-        comfort = Math.max(0,comfort);
-
-        if(hunger>80 || sleep>80 || comfort<20){
-            setTimeout(()=>{ playSound("cry.mp3"); },1000);
-        }
+        hunger=Math.min(100,hunger);
+        sleep=Math.min(100,sleep);
+        diaper=Math.min(100,diaper);
+        comfort=Math.max(0,comfort);
     }
 });
 
-// guardar tiempo
+// GUARDAR TIEMPO
 setInterval(()=>{
     localStorage.setItem("lastTime",Date.now());
 },5000);
 
 // UI
 setInterval(()=>{
-    document.getElementById("age").innerText =
-    "Edad: " + getAge().toFixed(2) + " años";
-
-    document.getElementById("hunger").innerText =
-    "Hambre: " + hunger.toFixed(0);
-
-    document.getElementById("sleep").innerText =
-    "Sueño: " + sleep.toFixed(0);
-
-    document.getElementById("comfort").innerText =
-    "Confort: " + comfort.toFixed(0);
+    document.getElementById("age").innerText="Edad: "+getAge().toFixed(2);
+    document.getElementById("hunger").innerText="Hambre: "+hunger.toFixed(0);
+    document.getElementById("sleep").innerText="Sueño: "+sleep.toFixed(0);
+    document.getElementById("comfort").innerText="Confort: "+comfort.toFixed(0);
 },1000);
+
+// NECESIDADES SUBEN
+setInterval(()=>{
+    hunger+=0.2;
+    sleep+=0.15;
+    diaper+=0.25;
+    comfort-=0.1;
+
+    hunger=Math.min(100,hunger);
+    sleep=Math.min(100,sleep);
+    diaper=Math.min(100,diaper);
+    comfort=Math.max(0,comfort);
+},3000);
+
+// ================= LLANTOS (ARREGLADO DE VERDAD) =================
+setInterval(()=>{
+
+    if(state!=="idle") return;
+
+    if(activeSound) return;
+
+    if(hunger>85){
+        playSound("cry_hunger.mp3");
+        return;
+    }
+
+    if(sleep>85){
+        playSound("cry_sleep.mp3");
+        return;
+    }
+
+    if(diaper>80){
+        playSound("cry_discomfort.mp3");
+        return;
+    }
+
+    // llanto + balbuceo
+    if((hunger>60 || sleep>60) && Math.random()<0.3){
+        playSound("babble_and_cry.mp3");
+    }
+
+},6000);
+
+// ================= SONIDOS ALEATORIOS =================
+let sounds=[
+"babble.mp3","laugh.mp3","aaah_aaah.mp3",
+"tatata.mp3","dada.mp3",
+"popopo_ti_ta.mp3","mama_papa_tete.mp3"
+];
+
+function randomSounds(){
+
+    if(state!=="idle") return;
+
+    let delay=15000+Math.random()*25000;
+
+    setTimeout(()=>{
+
+        if(activeSound){
+            randomSounds();
+            return;
+        }
+
+        if(hunger>80 || sleep>80 || diaper>80){
+            randomSounds();
+            return;
+        }
+
+        let s;
+        do{
+            s=sounds[Math.floor(Math.random()*sounds.length)];
+        }while(s===lastSound);
+
+        lastSound=s;
+
+        playSound(s);
+
+        randomSounds();
+
+    },delay);
+}
+
+randomSounds();
 
 // INTERACCIONES
 function playBaby(){ playSound("laugh.mp3"); comfort+=5; }
@@ -202,6 +250,20 @@ function bathSoap(){ playSound("bath_soap.mp3"); }
 function bathRinse(){ playSound("bath_water.mp3"); }
 function bathDry(){ playSound("bath_dry.mp3"); }
 
+// PAÑAL
+function diaperChange(){
+    diaper=0;
+    comfort+=10;
+    playSound("diaper.mp3");
+    document.getElementById("status").innerText="Pañal cambiado";
+}
+
+// VESTIR
+function dressBaby(){
+    comfort+=5;
+    playSound("dress.mp3");
+}
+
 // SUEÑO
 function soothe(){ playSound("musicbox.mp3"); }
 
@@ -216,40 +278,6 @@ function sleepBaby(){
         }
     },2000);
 }
-
-// SONIDOS ALEATORIOS
-let sounds=[
-"babble.mp3","laugh.mp3","aaah_aaah.mp3",
-"tatata.mp3","dada.mp3",
-"popopo_ti_ta.mp3","mama_papa_tete.mp3"
-];
-
-function babyRandomSounds(){
-
-    if(state!=="idle") return;
-
-    let delay=15000+Math.random()*30000;
-
-    setTimeout(()=>{
-
-        if(hunger>85){ playSound("cry_hunger.mp3"); return; }
-        if(sleep>85){ playSound("cry_sleep.mp3"); return; }
-        if(comfort<15){ playSound("cry_discomfort.mp3"); return; }
-
-        let s;
-        do{
-            s=sounds[Math.floor(Math.random()*sounds.length)];
-        }while(s===lastRandomSound);
-
-        lastRandomSound=s;
-        playSound(s);
-
-        babyRandomSounds();
-
-    },delay);
-}
-
-babyRandomSounds();
 
 </script>
 
