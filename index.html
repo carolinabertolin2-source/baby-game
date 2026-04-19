@@ -186,13 +186,10 @@ document.getElementById("status").innerText=babyName+" ha ensuciado el pañal";
 
 },5000);
 
-// ===== LLANTO VARIADO =====
+// ===== LLANTO =====
 function randomCryLoop(){
-
 if(state==="idle" && !activeSound){
-
 let cries=[];
-
 if(hunger>70) cries.push("cry_hunger.mp3");
 if(sleep>70) cries.push("cry_sleep.mp3");
 if(diaper>70) cries.push("cry_discomfort.mp3");
@@ -202,18 +199,14 @@ playSound(cries[Math.floor(Math.random()*cries.length)]);
 }else if(comfort<40){
 playSound("babble_and_cry.mp3");
 }
-
 }
-
 setTimeout(randomCryLoop,8000+Math.random()*15000);
 }
 randomCryLoop();
 
 // ===== BALBUCEO =====
 function babbleLoop(){
-
 if(state==="idle"&&!activeSound&&hunger<70&&sleep<70){
-
 let age=getAge();
 let sounds=["babble.mp3","aaah_aaah.mp3","laugh.mp3"];
 
@@ -224,7 +217,6 @@ if(age>2.9) sounds.push("count_1_10.mp3");
 
 playSound(sounds[Math.floor(Math.random()*sounds.length)]);
 }
-
 setTimeout(babbleLoop,15000+Math.random()*20000);
 }
 babbleLoop();
@@ -255,23 +247,34 @@ new Audio("spoon_in_bowl.mp3").play().catch(()=>{});
 
 // ===== BAÑO =====
 function bathWater(){ bathStep=1; playSound("bath_water.mp3"); }
-function bathSoap(){ if(bathStep!==1)return; bathStep=2; playSound("bath_soap.mp3"); }
+
+function bathSoap(){
+if(bathStep!==1) return;
+bathStep=2;
+let a=new Audio("bath_soap.mp3");
+a.play().catch(()=>{});
+}
+
 function bathRinse(){ if(bathStep!==2)return; bathStep=3; playSound("bath_water.mp3"); }
+
 function bathDry(){ if(bathStep!==3)return; bathStep=0; comfort+=20; playSound("bath_dry.mp3"); }
 
 // ===== PAÑAL =====
-function diaperChange(){ diaper=0; comfort+=10; playSound("diaper.mp3"); }
+function diaperChange(){
+diaper=0;
+comfort+=10;
+document.getElementById("status").innerText="";
+playSound("diaper.mp3");
+}
 
-function dressBaby(){ comfort+=5; playSound("dress.mp3"); }
+function dressBaby(){ comfort+=5; playSound("clothes.mp3"); }
+
 function soothe(){ comfort+=10; playSound("musicbox.mp3"); }
 
 // ===== DORMIR =====
 function sleepBaby(){
 state="sleeping";
-
-playSound("blanket.mp3",()=>{
-playSound("sleep.mp3");
-});
+playSound("blanket.mp3",()=>{ playSound("sleep.mp3"); });
 
 setTimeout(()=>{
 state="idle";
