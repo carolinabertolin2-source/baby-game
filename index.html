@@ -35,7 +35,12 @@
 <button onclick="prepareFood()">Preparar papilla</button>
 <button onclick="feedFood()">Dar papilla</button>
 
-<button onclick="bath()">Baño</button>
+<!-- BAÑO EN 4 FASES -->
+<button onclick="bathWater()">Agua</button>
+<button onclick="bathSoap()">Jabón</button>
+<button onclick="bathRinse()">Aclarar</button>
+<button onclick="bathDry()">Secar</button>
+
 <button onclick="diaperChange()">Cambiar pañal</button>
 <button onclick="dressBaby()">Vestir</button>
 
@@ -55,11 +60,15 @@
 // ===== VARIABLES =====
 let babyName="Bebé";
 let startTime=Date.now();
+
 let hunger=30, sleep=30, comfort=70, diaper=0;
 let state="idle";
 let activeSound=null;
 let temperature=36.5;
 let doctorReady=false;
+
+// baño fases
+let bathStep=0;
 
 // ===== GUARDADO =====
 function saveGame(){
@@ -79,36 +88,33 @@ sleep=data.sleep;
 diaper=data.diaper;
 comfort=data.comfort;
 
-let diff = (Date.now()-data.lastTime)/1000;
-hunger += diff*0.01;
-sleep += diff*0.01;
-diaper += diff*0.015;
+let diff=(Date.now()-data.lastTime)/1000;
+hunger+=diff*0.01;
+sleep+=diff*0.01;
+diaper+=diff*0.015;
+comfort-=diff*0.005;
 
 return true;
 }
 
-// ===== INICIO AUTOMÁTICO =====
-window.onload = function(){
+// ===== AUTO INICIO =====
+window.onload=function(){
 
 if(loadGame()){
 document.getElementById("startScreen").style.display="none";
 document.getElementById("game").style.display="block";
 
-// llorar si está mal
-if(hunger>80 || sleep>80 || diaper>80){
+if(hunger>80||sleep>80||diaper>80){
 setTimeout(()=>playSound("cry_hunger.mp3"),1000);
 }
-
 }
 
 };
 
-// ===== START MANUAL =====
+// ===== START =====
 function startGame(){
-
-babyName=document.getElementById("babyName").value || "Bebé";
+babyName=document.getElementById("babyName").value||"Bebé";
 startTime=Date.now();
-
 saveGame();
 
 document.getElementById("startScreen").style.display="none";
@@ -116,7 +122,7 @@ document.getElementById("game").style.display="block";
 }
 
 // ===== AUDIO =====
-function playSound(src, callback){
+function playSound(src,callback){
 if(activeSound) return;
 
 let a=new Audio(src);
@@ -128,8 +134,6 @@ activeSound=null;
 if(callback) callback();
 };
 }
-
-document.addEventListener("click",()=>{new Audio().play().catch(()=>{});},{once:true});
 
 // ===== EDAD =====
 function getAge(){
@@ -150,12 +154,19 @@ return y+" años y "+m+" meses";
 
 // ===== UI =====
 setInterval(()=>{
+
 document.getElementById("age").innerText="Edad: "+getAgeText();
+
+// estado emocional
+let mood="feliz";
+if(comfort<40) mood="triste";
+if(comfort<20) mood="muy incómodo";
 
 document.getElementById("needs").innerText =
 "Hambre: "+Math.floor(hunger)+
 " | Sueño: "+Math.floor(sleep)+
-" | Pañal: "+Math.floor(diaper);
+" | Pañal: "+Math.floor(diaper)+
+" | Estado: "+mood;
 
 saveGame();
 
@@ -174,28 +185,26 @@ document.getElementById("status").innerText=babyName+" ha ensuciado el pañal";
 
 },5000);
 
-// ===== LLANTO ALEATORIO =====
+// ===== LLANTO =====
 function randomCryLoop(){
 
-if(state==="idle" && !activeSound){
+if(state==="idle"&&!activeSound){
 
 if(hunger>85) playSound("cry_hunger.mp3");
 else if(sleep>85) playSound("cry_sleep.mp3");
 else if(diaper>85) playSound("cry_discomfort.mp3");
-else if((hunger>60||sleep>60) && Math.random()<0.4){
-playSound("babble_and_cry.mp3");
-}
+else if(comfort<30) playSound("babble_and_cry.mp3");
 
 }
 
-setTimeout(randomCryLoop, 8000 + Math.random()*15000);
+setTimeout(randomCryLoop,8000+Math.random()*15000);
 }
 randomCryLoop();
 
-// ===== BALBUCEO POR EDAD =====
+// ===== BALBUCEO =====
 function babbleLoop(){
 
-if(state==="idle" && !activeSound && hunger<70 && sleep<70){
+if(state==="idle"&&!activeSound&&hunger<70&&sleep<70){
 
 let age=getAge();
 let sounds=["babble.mp3","aaah_aaah.mp3"];
@@ -208,16 +217,16 @@ if(age>2.9) sounds.push("count_1_10.mp3");
 playSound(sounds[Math.floor(Math.random()*sounds.length)]);
 }
 
-setTimeout(babbleLoop, 15000 + Math.random()*20000);
+setTimeout(babbleLoop,15000+Math.random()*20000);
 }
 babbleLoop();
 
 // ===== ACCIONES =====
-function playBaby(){ playSound("laugh.mp3"); }
-function hugBaby(){ playSound("babble.mp3"); }
-function rattle(){ playSound("rattle.mp3"); }
-function pacifier(){ playSound("pacifier.mp3"); }
-function walk(){ playSound("outdoor.mp3"); }
+function playBaby(){ comfort+=10; playSound("laugh.mp3"); }
+function hugBaby(){ comfort+=15; playSound("babble.mp3"); }
+function rattle(){ comfort+=5; playSound("rattle.mp3"); }
+function pacifier(){ comfort+=5; playSound("pacifier.mp3"); }
+function walk(){ comfort+=10; playSound("outdoor.mp3"); }
 
 function prepareBottle(){ playSound("bottle_prepare.mp3"); }
 function feedBottle(){ hunger-=30; playSound("bottle_drink.mp3"); }
@@ -231,18 +240,46 @@ playSound("food_prepare.mp3");
 }
 function feedFood(){ hunger-=25; playSound("food_eat.mp3"); }
 
-function bath(){ playSound("bath_water.mp3"); }
+// ===== BAÑO EN FASES =====
+function bathWater(){
+bathStep=1;
+playSound("bath_water.mp3");
+}
 
-function diaperChange(){ diaper=0; playSound("diaper.mp3"); }
-function dressBaby(){ playSound("dress.mp3"); }
+function bathSoap(){
+if(bathStep!==1) return;
+bathStep=2;
+playSound("soap.mp3");
+}
 
-function soothe(){ playSound("musicbox.mp3"); }
+function bathRinse(){
+if(bathStep!==2) return;
+bathStep=3;
+playSound("water.mp3");
+}
+
+function bathDry(){
+if(bathStep!==3) return;
+bathStep=0;
+comfort+=20;
+playSound("towel.mp3");
+}
+
+// ===== PAÑAL =====
+function diaperChange(){
+diaper=0;
+comfort+=10;
+playSound("diaper.mp3");
+}
+
+function dressBaby(){ comfort+=5; playSound("dress.mp3"); }
+function soothe(){ comfort+=10; playSound("musicbox.mp3"); }
 
 // ===== SUEÑO =====
 function sleepBaby(){
 state="sleeping";
 playSound("breathing.mp3");
-setTimeout(()=>{state="idle";},20000);
+setTimeout(()=>{state="idle";sleep-=30;},20000);
 }
 
 // ===== TERMÓMETRO =====
@@ -256,7 +293,6 @@ document.getElementById("status").innerText="Temperatura "+temperature.toFixed(1
 
 // ===== MÉDICO =====
 function goDoctor(){
-
 playSound("outdoor.mp3",()=>{
 setTimeout(()=>{
 playSound("doctor_1.mp3",()=>{
@@ -267,11 +303,9 @@ doctorReady=true;
 });
 },2000);
 });
-
 }
 
 function enterDoctor(){
-
 if(!doctorReady) return;
 
 playSound("doctor_3.mp3",()=>{
@@ -286,7 +320,6 @@ playSound("doctor_4.mp3");
 });
 },3000);
 });
-
 }
 
 function exitDoctor(){
