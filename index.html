@@ -20,6 +20,10 @@
 
 <div id="game" style="display:none">
 
+<p id="age"></p>
+<p id="status"></p>
+<p id="needs"></p>
+
 <button onclick="playBaby()">Jugar</button>
 <button onclick="hugBaby()">Abrazar</button>
 <button onclick="rattle()">Sonajero</button>
@@ -44,12 +48,36 @@
 <button onclick="exitDoctor()">Salir</button>
 <button onclick="giveMedicine()">Jarabe</button>
 
-<p id="status"></p>
-<p id="age"></p>
-
 </div>
 
 <script>
+
+// ===== GUARDADO =====
+function saveGame(){
+localStorage.setItem("babyData", JSON.stringify({
+babyName, startTime, hunger, sleep, diaper, comfort, lastTime:Date.now()
+}));
+}
+
+function loadGame(){
+let data = JSON.parse(localStorage.getItem("babyData"));
+if(!data) return false;
+
+babyName=data.babyName;
+startTime=data.startTime;
+hunger=data.hunger;
+sleep=data.sleep;
+diaper=data.diaper;
+comfort=data.comfort;
+
+// simular tiempo offline
+let diff = (Date.now()-data.lastTime)/1000;
+hunger += diff*0.01;
+sleep += diff*0.01;
+diaper += diff*0.015;
+
+return true;
+}
 
 // ===== VARIABLES =====
 let babyName="Bebé";
@@ -61,13 +89,10 @@ let activeSound=null;
 
 let babySick=false;
 let temperature=36.5;
-let medicineToday=0;
-let lastMedicineDay=0;
-let sickStartTime=0;
 
 let doctorReady=false;
 
-// ===== AUDIO CONTROL =====
+// ===== AUDIO =====
 function playSound(src, callback){
 if(activeSound) return;
 
@@ -81,7 +106,6 @@ if(callback) callback();
 };
 }
 
-// desbloqueo audio móvil
 document.addEventListener("click",()=>{new Audio().play().catch(()=>{});},{once:true});
 
 // ===== EDAD =====
@@ -103,8 +127,22 @@ return y+" años y "+m+" meses";
 
 // ===== START =====
 function startGame(){
+
+if(loadGame()){
+document.getElementById("startScreen").style.display="none";
+document.getElementById("game").style.display="block";
+
+// llorar si está mal
+if(hunger>80 || sleep>80 || diaper>80){
+setTimeout(()=>playSound("cry_hunger.mp3"),1000);
+}
+return;
+}
+
 babyName=document.getElementById("babyName").value || "Bebé";
 startTime=Date.now();
+
+saveGame();
 
 document.getElementById("startScreen").style.display="none";
 document.getElementById("game").style.display="block";
@@ -113,70 +151,66 @@ document.getElementById("game").style.display="block";
 // ===== UI =====
 setInterval(()=>{
 document.getElementById("age").innerText="Edad: "+getAgeText();
-},1000);
+
+document.getElementById("needs").innerText =
+"Hambre: "+Math.floor(hunger)+
+" | Sueño: "+Math.floor(sleep)+
+" | Pañal: "+Math.floor(diaper);
+
+saveGame();
+
+},2000);
 
 // ===== NECESIDADES =====
 setInterval(()=>{
-hunger+=0.1;
-sleep+=0.1;
-diaper+=0.15;
-comfort-=0.05;
+hunger+=0.2;
+sleep+=0.2;
+diaper+=0.25;
+comfort-=0.1;
 
 if(diaper>80){
 document.getElementById("status").innerText=babyName+" ha ensuciado el pañal";
 }
 
-},4000);
+},5000);
 
 // ===== LLANTO =====
-setInterval(()=>{
-if(state!=="idle" || activeSound) return;
+function randomCryLoop(){
 
-if(hunger>85){ playSound("cry_hunger.mp3"); return;}
-if(sleep>85){ playSound("cry_sleep.mp3"); return;}
-if(diaper>85){ playSound("cry_discomfort.mp3"); return;}
+if(state==="idle" && !activeSound){
 
-if((hunger>60||sleep>60)&&Math.random()<0.3){
+if(hunger>85) playSound("cry_hunger.mp3");
+else if(sleep>85) playSound("cry_sleep.mp3");
+else if(diaper>85) playSound("cry_discomfort.mp3");
+else if((hunger>60||sleep>60) && Math.random()<0.4){
 playSound("babble_and_cry.mp3");
 }
 
-},7000);
-
-// ===== BALBUCEOS =====
-setInterval(()=>{
-if(state!=="idle" || activeSound) return;
-if(hunger>70||sleep>70||diaper>70) return;
-
-let sounds=["babble.mp3","aaah_aaah.mp3","tatata.mp3","dada.mp3","mama_papa_tete.mp3"];
-playSound(sounds[Math.floor(Math.random()*sounds.length)]);
-
-},25000);
-
-// ===== ENFERMEDAD =====
-setInterval(()=>{
-if(!babySick && Math.random()<0.02){
-babySick=true;
-sickStartTime=Date.now();
-temperature=37.5+Math.random();
-document.getElementById("status").innerText=babyName+" está enfermo";
 }
-},60000);
 
-// ===== FIEBRE =====
-setInterval(()=>{
-if(!babySick) return;
-temperature+=0.05;
-if(temperature>38) comfort-=0.2;
-},10000);
+setTimeout(randomCryLoop, 8000 + Math.random()*15000);
+}
+randomCryLoop();
 
-// ===== TOS =====
-setInterval(()=>{
-if(!babySick || state!=="idle" || activeSound) return;
+// ===== BALBUCEOS POR EDAD =====
+function babbleLoop(){
 
-playSound(Math.random()<0.5?"cough.mp3":"sneeze.mp3");
-document.getElementById("status").innerText=babyName+" tose o estornuda";
+if(state==="idle" && !activeSound && hunger<70 && sleep<70){
 
-},30000);
+let age=getAge();
+let sounds=["babble.mp3","aaah_aaah.mp3"];
+
+if(age>0.3) sounds.push("tatata.mp3","popopo_ti_ta.mp3");
+if(age>0.8) sounds.push("dada.mp3");
+if(age>1.2) sounds.push("mama_papa_tete.mp3");
+if(age>2.9) sounds.push("count_1_10.mp3");
+
+playSound(sounds[Math.floor(Math.random()*sounds.length)]);
+}
+
+setTimeout(babbleLoop, 15000 + Math.random()*20000);
+}
+babbleLoop();
 
 // ===== ACCIONES =====
 function playBaby(){ playSound("laugh.mp3"); }
@@ -216,7 +250,7 @@ function takeTemperature(){
 playSound("thermometer.mp3",()=>{
 setTimeout(()=>{
 document.getElementById("status").innerText="Temperatura "+temperature.toFixed(1);
-},2000);
+},4000);
 });
 }
 
@@ -229,7 +263,7 @@ playSound("doctor_1.mp3",()=>{
 setTimeout(()=>{
 playSound("doctor_2.mp3");
 doctorReady=true;
-},6000);
+},7000);
 });
 },2000);
 });
@@ -248,7 +282,7 @@ document.getElementById("status").innerText="Temperatura "+temperature.toFixed(1
 setTimeout(()=>{
 playSound("doctor_4.mp3");
 },3000);
-},3000);
+},4000);
 });
 },3000);
 });
@@ -261,48 +295,10 @@ playSound("outdoor.mp3");
 }
 
 // ===== JARABE =====
-function getDay(){return Math.floor(Date.now()/(1000*60*60*24));}
-
 function giveMedicine(){
-
-if(!babySick){
-document.getElementById("status").innerText="No necesita jarabe";
-return;
-}
-
-let today=getDay();
-
-if(today!==lastMedicineDay){
-medicineToday=0;
-lastMedicineDay=today;
-}
-
-if(medicineToday>=3){
-document.getElementById("status").innerText="Ya tomó suficiente hoy";
-return;
-}
-
-medicineToday++;
-temperature-=0.7;
-
+temperature-=0.5;
 playSound("medicine_swallow.mp3");
-
 }
-
-// ===== CURACIÓN =====
-setInterval(()=>{
-if(!babySick) return;
-
-let days=(Date.now()-sickStartTime)/(1000*60*60*24);
-
-if(days>2 && medicineToday>0){
-if(Math.random()<0.3){
-babySick=false;
-temperature=36.5;
-document.getElementById("status").innerText=babyName+" se ha curado";
-}
-}
-},60000);
 
 </script>
 
