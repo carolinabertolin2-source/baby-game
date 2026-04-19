@@ -52,6 +52,15 @@
 
 <script>
 
+// ===== VARIABLES =====
+let babyName="Bebé";
+let startTime=Date.now();
+let hunger=30, sleep=30, comfort=70, diaper=0;
+let state="idle";
+let activeSound=null;
+let temperature=36.5;
+let doctorReady=false;
+
 // ===== GUARDADO =====
 function saveGame(){
 localStorage.setItem("babyData", JSON.stringify({
@@ -70,7 +79,6 @@ sleep=data.sleep;
 diaper=data.diaper;
 comfort=data.comfort;
 
-// simular tiempo offline
 let diff = (Date.now()-data.lastTime)/1000;
 hunger += diff*0.01;
 sleep += diff*0.01;
@@ -79,18 +87,33 @@ diaper += diff*0.015;
 return true;
 }
 
-// ===== VARIABLES =====
-let babyName="Bebé";
-let startTime=Date.now();
+// ===== INICIO AUTOMÁTICO =====
+window.onload = function(){
 
-let hunger=30, sleep=30, comfort=70, diaper=0;
-let state="idle";
-let activeSound=null;
+if(loadGame()){
+document.getElementById("startScreen").style.display="none";
+document.getElementById("game").style.display="block";
 
-let babySick=false;
-let temperature=36.5;
+// llorar si está mal
+if(hunger>80 || sleep>80 || diaper>80){
+setTimeout(()=>playSound("cry_hunger.mp3"),1000);
+}
 
-let doctorReady=false;
+}
+
+};
+
+// ===== START MANUAL =====
+function startGame(){
+
+babyName=document.getElementById("babyName").value || "Bebé";
+startTime=Date.now();
+
+saveGame();
+
+document.getElementById("startScreen").style.display="none";
+document.getElementById("game").style.display="block";
+}
 
 // ===== AUDIO =====
 function playSound(src, callback){
@@ -125,29 +148,6 @@ if(m===0) return y+" años";
 return y+" años y "+m+" meses";
 }
 
-// ===== START =====
-function startGame(){
-
-if(loadGame()){
-document.getElementById("startScreen").style.display="none";
-document.getElementById("game").style.display="block";
-
-// llorar si está mal
-if(hunger>80 || sleep>80 || diaper>80){
-setTimeout(()=>playSound("cry_hunger.mp3"),1000);
-}
-return;
-}
-
-babyName=document.getElementById("babyName").value || "Bebé";
-startTime=Date.now();
-
-saveGame();
-
-document.getElementById("startScreen").style.display="none";
-document.getElementById("game").style.display="block";
-}
-
 // ===== UI =====
 setInterval(()=>{
 document.getElementById("age").innerText="Edad: "+getAgeText();
@@ -174,7 +174,7 @@ document.getElementById("status").innerText=babyName+" ha ensuciado el pañal";
 
 },5000);
 
-// ===== LLANTO =====
+// ===== LLANTO ALEATORIO =====
 function randomCryLoop(){
 
 if(state==="idle" && !activeSound){
@@ -192,7 +192,7 @@ setTimeout(randomCryLoop, 8000 + Math.random()*15000);
 }
 randomCryLoop();
 
-// ===== BALBUCEOS POR EDAD =====
+// ===== BALBUCEO POR EDAD =====
 function babbleLoop(){
 
 if(state==="idle" && !activeSound && hunger<70 && sleep<70){
