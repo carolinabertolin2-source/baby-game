@@ -4,22 +4,16 @@
 <meta charset="UTF-8">
 <title>Simulador de Bebé</title>
 </head>
-
 <body>
-
 <h1>Simulador de Bebé</h1>
 
 <div id="startScreen">
 <input id="babyName" placeholder="Nombre del bebé">
-<select id="babyGender">
-<option>Niño</option>
-<option>Niña</option>
-</select>
+<select id="babyGender"><option>Niño</option><option>Niña</option></select>
 <button onclick="startGame()">Empezar</button>
 </div>
 
 <div id="game" style="display:none">
-
 <p id="age"></p>
 <p id="status"></p>
 <p id="needs"></p>
@@ -29,382 +23,245 @@
 <button onclick="rattle()">Sonajero</button>
 <button onclick="pacifier()">Chupete</button>
 <button onclick="walk()">Paseo</button>
-
 <button onclick="prepareBottle()">Preparar biberón</button>
 <button onclick="feedBottle()">Dar biberón</button>
 <button onclick="prepareFood()">Preparar papilla</button>
 <button onclick="feedFood()">Dar papilla</button>
-
 <button onclick="bathWater()">Agua</button>
 <button onclick="bathSoap()">Jabón</button>
 <button onclick="bathRinse()">Aclarar</button>
 <button onclick="bathDry()">Secar</button>
-
 <button onclick="diaperChange()">Cambiar pañal</button>
 <button onclick="dressBaby()">Vestir</button>
-
 <button onclick="soothe()">Arrullar</button>
 <button onclick="sleepBaby()">Dormir</button>
-
 <button onclick="takeTemperature()">Tomar temperatura</button>
 <button onclick="goDoctor()">Ir al médico</button>
 <button onclick="enterDoctor()">Entrar</button>
 <button onclick="exitDoctor()">Salir</button>
 <button onclick="giveMedicine()">Jarabe</button>
-
 </div>
 
 <script>
-
-// ===== AUDIO =====
 let audioUnlocked=false;
-document.addEventListener("click",()=>{
-if(!audioUnlocked){
-new Audio().play().catch(()=>{});
-audioUnlocked=true;
-}
+document.addEventListener('click',()=>{
+ if(!audioUnlocked){ new Audio().play().catch(()=>{}); audioUnlocked=true; }
 },{once:true});
 
 let activeSound=null;
-function playSound(src,callback){
-if(!audioUnlocked || activeSound) return;
-
-let a=new Audio(src);
-activeSound=a;
-
-a.play().catch(()=>{activeSound=null;});
-a.onended=()=>{
-activeSound=null;
-if(callback) callback();
-};
+function playSound(src,cb){
+ if(!audioUnlocked || activeSound) return;
+ let a=new Audio(src);
+ activeSound=a;
+ a.play().catch(()=>{activeSound=null;});
+ a.onended=()=>{activeSound=null; if(cb) cb();};
 }
 
-// ===== VARIABLES =====
-let babyName="Bebé";
+let babyName='Bebé';
 let startTime=Date.now();
 let hunger=30, sleep=30, comfort=70, diaper=0;
-let state="idle";
+let state='idle';
 let temperature=36.5;
+let sick=false, sickStartTime=0;
+let medicineCount=0, lastMedicineDay=0;
+let doctorReady=false, bathStep=0;
 
-let sick=false;
-let sickStartTime=0;
+function clampNeeds(){
+ hunger=Math.max(0,Math.min(100,hunger));
+ sleep=Math.max(0,Math.min(100,sleep));
+ diaper=Math.max(0,Math.min(100,diaper));
+ comfort=Math.max(0,Math.min(100,comfort));
+}
 
-let medicineCount=0;
-let lastMedicineDay=0;
-
-let doctorReady=false;
-let bathStep=0;
-
-// ===== GUARDADO =====
 function saveGame(){
-localStorage.setItem("babyData", JSON.stringify({
-babyName,startTime,hunger,sleep,diaper,comfort,temperature,sick,sickStartTime,lastTime:Date.now()
-}));
+ clampNeeds();
+ localStorage.setItem('babyData',JSON.stringify({
+ babyName,startTime,hunger,sleep,diaper,comfort,temperature,sick,sickStartTime,lastTime:Date.now()
+ }));
 }
 
 function loadGame(){
-let d=JSON.parse(localStorage.getItem("babyData"));
-if(!d) return false;
-
-babyName=d.babyName;
-startTime=d.startTime;
-hunger=d.hunger;
-sleep=d.sleep;
-diaper=d.diaper;
-comfort=d.comfort;
-temperature=d.temperature||36.5;
-sick=d.sick||false;
-sickStartTime=d.sickStartTime||0;
-
-let diff=(Date.now()-d.lastTime)/1000;
-hunger+=diff*0.01;
-sleep+=diff*0.01;
-diaper+=diff*0.015;
-comfort-=diff*0.005;
-
-return true;
+ let d=JSON.parse(localStorage.getItem('babyData'));
+ if(!d) return false;
+ babyName=d.babyName;
+ startTime=d.startTime;
+ hunger=d.hunger; sleep=d.sleep; diaper=d.diaper; comfort=d.comfort;
+ temperature=d.temperature||36.5;
+ sick=d.sick||false; sickStartTime=d.sickStartTime||0;
+ let diff=(Date.now()-d.lastTime)/1000;
+ hunger+=diff*0.01;
+ sleep+=diff*0.01;
+ diaper+=diff*0.015;
+ comfort-=diff*0.005;
+ clampNeeds();
+ return true;
 }
 
-// ===== INICIO =====
 window.onload=()=>{
-if(loadGame()){
-document.getElementById("startScreen").style.display="none";
-document.getElementById("game").style.display="block";
-
-if(hunger>80||sleep>80||diaper>80){
-setTimeout(()=>playSound("cry_hunger.mp3"),1000);
-}
-}
+ if(loadGame()){
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('game').style.display='block';
+  if(hunger>80||sleep>80||diaper>80){ setTimeout(()=>playSound('cry_hunger.mp3'),1000); }
+ }
 };
 
 function startGame(){
-babyName=document.getElementById("babyName").value||"Bebé";
-startTime=Date.now();
-saveGame();
-
-document.getElementById("startScreen").style.display="none";
-document.getElementById("game").style.display="block";
+ babyName=document.getElementById('babyName').value||'Bebé';
+ startTime=Date.now();
+ saveGame();
+ document.getElementById('startScreen').style.display='none';
+ document.getElementById('game').style.display='block';
 }
 
-// ===== EDAD =====
 function getAge(){
-let elapsed=Date.now()-startTime;
-let total=60*24*60*60*1000;
-return Math.min(3,(elapsed/total)*3);
+ let elapsed=Date.now()-startTime;
+ let total=60*24*60*60*1000;
+ return Math.min(3,(elapsed/total)*3);
 }
-
 function getAgeText(){
-let a=getAge();
-let y=Math.floor(a);
-let m=Math.floor((a-y)*12);
-
-if(y===0) return m+" meses";
-if(m===0) return y+" años";
-return y+" años y "+m+" meses";
+ let a=getAge(), y=Math.floor(a), m=Math.floor((a-y)*12);
+ if(y===0) return m+' meses';
+ if(m===0) return y+' años';
+ return y+' años y '+m+' meses';
 }
 
-// ===== ESTADO =====
 function getMood(){
-
-if(sick && temperature>37.5) return "muy molesto";
-if(hunger>80 || sleep>80 || diaper>80) return "muy molesto";
-if(hunger>60 || sleep>60 || diaper>60) return "molesto";
-if(comfort<40) return "inquieto";
-
-return "feliz";
+ if(sick && temperature>37.5) return 'muy molesto';
+ if(hunger>80||sleep>80||diaper>80) return 'muy molesto';
+ if(hunger>60||sleep>60||diaper>60) return 'molesto';
+ if(comfort<40) return 'inquieto';
+ return 'feliz';
 }
 
-// ===== UI =====
 setInterval(()=>{
-document.getElementById("age").innerText="Edad: "+getAgeText();
-
-document.getElementById("needs").innerText =
-"Hambre: "+Math.floor(hunger)+
-" | Sueño: "+Math.floor(sleep)+
-" | Pañal: "+Math.floor(diaper)+
-" | Estado: "+getMood();
-
-saveGame();
-
+ clampNeeds();
+ document.getElementById('age').innerText='Edad: '+getAgeText();
+ document.getElementById('needs').innerText=
+ 'Hambre: '+Math.floor(hunger)+
+ ' | Sueño: '+Math.floor(sleep)+
+ ' | Pañal: '+Math.floor(diaper)+
+ ' | Estado: '+getMood();
+ saveGame();
 },2000);
 
-// ===== NECESIDADES =====
 setInterval(()=>{
-hunger+=0.2;
-sleep+=0.2;
-diaper+=0.25;
-comfort-=0.1;
-
-if(diaper>80){
-document.getElementById("status").innerText=babyName+" ha ensuciado el pañal";
-}
-
+ hunger+=0.2; sleep+=0.2; diaper+=0.25; comfort-=0.1;
+ clampNeeds();
+ if(diaper>80){ document.getElementById('status').innerText=babyName+' ha ensuciado el pañal'; }
 },5000);
 
-// ===== LLANTO =====
 function randomCryLoop(){
-if(state==="idle" && !activeSound){
-
-let cries=[];
-if(hunger>70) cries.push("cry_hunger.mp3");
-if(sleep>70) cries.push("cry_sleep.mp3");
-if(diaper>70) cries.push("cry_discomfort.mp3");
-
-if(cries.length>0){
-playSound(cries[Math.floor(Math.random()*cries.length)]);
-}else if(comfort<40){
-playSound("babble_and_cry.mp3");
-}
-}
-
-setTimeout(randomCryLoop,8000+Math.random()*15000);
+ if(state==='idle'&&!activeSound){
+  let cries=[];
+  if(hunger>70) cries.push('cry_hunger.mp3');
+  if(sleep>70) cries.push('cry_sleep.mp3');
+  if(diaper>70) cries.push('cry_discomfort.mp3');
+  if(cries.length>0) playSound(cries[Math.floor(Math.random()*cries.length)]);
+  else if(comfort<40) playSound('babble_and_cry.mp3');
+ }
+ setTimeout(randomCryLoop,8000+Math.random()*15000);
 }
 randomCryLoop();
 
-// ===== BALBUCEO =====
 function babbleLoop(){
-if(state==="idle"&&!activeSound&&hunger<70&&sleep<70){
-
-let age=getAge();
-let sounds=["babble.mp3","aaah_aaah.mp3","laugh.mp3"];
-
-if(age>0.3) sounds.push("tatata.mp3","popopo_ti_ta.mp3");
-if(age>0.8) sounds.push("dada.mp3");
-if(age>1.2) sounds.push("mama_papa_tete.mp3");
-if(age>2.9) sounds.push("count_1_10.mp3");
-
-playSound(sounds[Math.floor(Math.random()*sounds.length)]);
-}
-
-setTimeout(babbleLoop,15000+Math.random()*20000);
+ if(state==='idle'&&!activeSound&&hunger<70&&sleep<70){
+  let age=getAge();
+  let sounds=['babble.mp3','aaah_aaah.mp3','laugh.mp3'];
+  if(age>0.3) sounds.push('tatata.mp3','popopo_ti_ta.mp3');
+  if(age>0.8) sounds.push('dada.mp3');
+  if(age>1.2) sounds.push('mama_papa_tete.mp3');
+  if(age>2.9) sounds.push('count_1_10.mp3');
+  playSound(sounds[Math.floor(Math.random()*sounds.length)]);
+ }
+ setTimeout(babbleLoop,15000+Math.random()*20000);
 }
 babbleLoop();
 
-// ===== ENFERMEDAD =====
 function sicknessLoop(){
-
-if(!sick && Math.random()<0.05){
-sick=true;
-sickStartTime=Date.now();
-temperature=37.5 + Math.random()*1.5;
-
-let sounds=["cough.mp3","sneeze.mp3"];
-playSound(sounds[Math.floor(Math.random()*sounds.length)]);
-}
-
-if(sick){
-
-if(Math.random()<0.3 && !activeSound){
-let sounds=["cough.mp3","sneeze.mp3"];
-playSound(sounds[Math.floor(Math.random()*sounds.length)]);
-}
-
-// subida gradual
-if(temperature < 39){
-temperature += Math.random()*0.05;
-}
-
-comfort-=0.2;
-
-// curación 2-3 días
-let duration=(2 + Math.random()) * 24 * 60 * 60 * 1000;
-
-if(Date.now()-sickStartTime > duration){
-sick=false;
-temperature=36.5;
-document.getElementById("status").innerText=babyName+" ya está mejor";
-}
-}
-
-setTimeout(sicknessLoop,20000+Math.random()*20000);
+ if(!sick && Math.random()<0.05){
+  sick=true; sickStartTime=Date.now(); temperature=37.5+Math.random()*1.5;
+  let s=['cough.mp3','sneeze.mp3']; playSound(s[Math.floor(Math.random()*s.length)]);
+ }
+ if(sick){
+  if(Math.random()<0.3&&!activeSound){let s=['cough.mp3','sneeze.mp3']; playSound(s[Math.floor(Math.random()*s.length)]);}
+  if(temperature<39) temperature+=Math.random()*0.05;
+  comfort-=0.2;
+  let duration=(2+Math.random())*24*60*60*1000;
+  if(Date.now()-sickStartTime>duration){ sick=false; temperature=36.5; document.getElementById('status').innerText=babyName+' ya está mejor'; }
+ }
+ setTimeout(sicknessLoop,20000+Math.random()*20000);
 }
 sicknessLoop();
 
-// ===== ACCIONES =====
-function playBaby(){ comfort+=10; playSound("laugh.mp3"); }
-function hugBaby(){ comfort+=15; playSound("babble.mp3"); }
-function rattle(){ comfort+=5; playSound("rattle.mp3"); }
-function pacifier(){ comfort+=5; playSound("pacifier.mp3"); }
-function walk(){ comfort+=10; playSound("outdoor.mp3"); }
+function playBaby(){comfort+=10;clampNeeds();playSound('laugh.mp3');}
+function hugBaby(){comfort+=15;clampNeeds();playSound('babble.mp3');}
+function rattle(){comfort+=5;clampNeeds();playSound('rattle.mp3');}
+function pacifier(){comfort+=5;clampNeeds();playSound('pacifier.mp3');}
+function walk(){comfort+=10;clampNeeds();playSound('outdoor.mp3');}
+function prepareBottle(){playSound('bottle_prepare.mp3');}
+function feedBottle(){hunger-=30;clampNeeds();playSound('bottle_drink.mp3');}
+function prepareFood(){ if(getAge()<0.5){document.getElementById('status').innerText='Demasiado pequeño'; return;} playSound('food_prepare.mp3');}
+function feedFood(){hunger-=25;clampNeeds();playSound('food_eat.mp3'); new Audio('spoon_in_bowl.mp3').play().catch(()=>{});}
 
-function prepareBottle(){ playSound("bottle_prepare.mp3"); }
-function feedBottle(){ hunger-=30; playSound("bottle_drink.mp3"); }
+function bathWater(){bathStep=1;playSound('bath_water.mp3');}
+function bathSoap(){if(bathStep!==1)return; bathStep=2; new Audio('bath_soap.mp3').play().catch(()=>{});}
+function bathRinse(){if(bathStep!==2)return; bathStep=3; playSound('bath_water.mp3');}
+function bathDry(){if(bathStep!==3)return; bathStep=0; comfort+=20; clampNeeds(); playSound('bath_dry.mp3');}
 
-function prepareFood(){
-if(getAge()<0.5){
-document.getElementById("status").innerText="Demasiado pequeño";
-return;
-}
-playSound("food_prepare.mp3");
-}
+function diaperChange(){diaper=0; comfort+=10; clampNeeds(); document.getElementById('status').innerText=''; playSound('diaper.mp3');}
+function dressBaby(){comfort+=5;clampNeeds();playSound('clothes.mp3');}
+function soothe(){comfort+=10;clampNeeds();playSound('musicbox.mp3');}
 
-function feedFood(){
-hunger-=25;
-playSound("food_eat.mp3");
-new Audio("spoon_in_bowl.mp3").play().catch(()=>{});
-}
-
-// ===== BAÑO =====
-function bathWater(){ bathStep=1; playSound("bath_water.mp3"); }
-function bathSoap(){ if(bathStep!==1)return; bathStep=2; new Audio("bath_soap.mp3").play().catch(()=>{}); }
-function bathRinse(){ if(bathStep!==2)return; bathStep=3; playSound("bath_water.mp3"); }
-function bathDry(){ if(bathStep!==3)return; bathStep=0; comfort+=20; playSound("bath_dry.mp3"); }
-
-// ===== PAÑAL =====
-function diaperChange(){
-diaper=0;
-comfort+=10;
-document.getElementById("status").innerText="";
-playSound("diaper.mp3");
-}
-
-// ===== VESTIR =====
-function dressBaby(){ comfort+=5; playSound("clothes.mp3"); }
-
-function soothe(){ comfort+=10; playSound("musicbox.mp3"); }
-
-// ===== DORMIR =====
 function sleepBaby(){
-state="sleeping";
-playSound("blanket.mp3",()=>{ playSound("sleep.mp3"); });
-
-setTimeout(()=>{
-state="idle";
-sleep-=30;
-},20000);
+ state='sleeping';
+ playSound('blanket.mp3',()=>{playSound('sleep.mp3');});
+ setTimeout(()=>{state='idle'; sleep-=30; clampNeeds();},20000);
 }
 
-// ===== TERMÓMETRO =====
 function takeTemperature(){
-playSound("thermometer.mp3",()=>{
-setTimeout(()=>{
-document.getElementById("status").innerText="Temperatura "+temperature.toFixed(1);
-},4000);
-});
+ playSound('thermometer.mp3',()=>{
+  setTimeout(()=>{document.getElementById('status').innerText='Temperatura '+temperature.toFixed(1);},4000);
+ });
 }
 
-// ===== MÉDICO =====
 function goDoctor(){
-playSound("outdoor.mp3",()=>{
-setTimeout(()=>{
-playSound("doctor_1.mp3",()=>{
-setTimeout(()=>{
-playSound("doctor_2.mp3");
-doctorReady=true;
-},7000);
-});
-},2000);
-});
+ playSound('outdoor.mp3',()=>{
+  setTimeout(()=>{
+   playSound('doctor_1.mp3',()=>{
+    setTimeout(()=>{playSound('doctor_2.mp3'); doctorReady=true;},7000);
+   });
+  },2000);
+ });
 }
 
 function enterDoctor(){
-if(!doctorReady) return;
-
-playSound("doctor_3.mp3",()=>{
-setTimeout(()=>{
-playSound("thermometer.mp3",()=>{
-setTimeout(()=>{
-document.getElementById("status").innerText="Temperatura "+temperature.toFixed(1);
-setTimeout(()=>{
-playSound("doctor_4.mp3");
-},3000);
-},4000);
-});
-},3000);
-});
+ if(!doctorReady) return;
+ playSound('doctor_3.mp3',()=>{
+  setTimeout(()=>{
+   playSound('thermometer.mp3',()=>{
+    setTimeout(()=>{
+      document.getElementById('status').innerText='Temperatura '+temperature.toFixed(1);
+      setTimeout(()=>{
+        activeSound=null;
+        playSound('doctor_4.mp3');
+      },3000);
+    },4000);
+   });
+  },3000);
+ });
 }
 
-function exitDoctor(){
-doctorReady=false;
-playSound("outdoor.mp3");
-}
+function exitDoctor(){doctorReady=false;playSound('outdoor.mp3');}
 
-// ===== JARABE =====
 function giveMedicine(){
-
-let today = Math.floor(Date.now()/(1000*60*60*24));
-
-if(today !== lastMedicineDay){
-medicineCount = 0;
-lastMedicineDay = today;
+ let today=Math.floor(Date.now()/(1000*60*60*24));
+ if(today!==lastMedicineDay){medicineCount=0; lastMedicineDay=today;}
+ if(medicineCount>=3){document.getElementById('status').innerText=babyName+' ya ha tomado suficiente jarabe hoy'; return;}
+ medicineCount++;
+ temperature-=0.7; if(temperature<36.5) temperature=36.5;
+ comfort+=5; clampNeeds();
+ playSound('medicine_swallow.mp3');
 }
-
-if(medicineCount >= 3){
-document.getElementById("status").innerText = babyName+" ya ha tomado suficiente jarabe hoy";
-return;
-}
-
-medicineCount++;
-
-temperature -= 0.7;
-if(temperature < 36.5) temperature = 36.5;
-
-playSound("medicine_swallow.mp3");
-
-comfort += 5;
-}
-
 </script>
-
 </body>
 </html>
